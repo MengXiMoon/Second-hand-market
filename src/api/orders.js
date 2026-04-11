@@ -11,3 +11,7 @@ export const getMyOrders = () => {
 export const getMySales = () => {
   return api.get('/orders/sales')
 }
+
+export const getAllOrders = () => {
+  return api.get('/orders/all')
+}

@@ -1,20 +1,24 @@
 <template>
-  <el-header class="navbar">
+  <el-header :class="['navbar', getRoleClass()]">
     <div class="navbar-content">
       <div class="logo" @click="$router.push('/')">
         <el-icon :size="24"><ShoppingCart /></el-icon>
         <span>二手市场</span>
       </div>
       <nav class="nav-links">
-        <el-button type="text" @click="$router.push('/products')">商品列表</el-button>
-        <template v-if="user">
-          <el-button v-if="isMerchantOrAdmin" type="text" @click="$router.push('/my-products')">我的商品</el-button>
-          <el-button v-if="isMerchantOrAdmin" type="text" @click="$router.push('/sales')">销售记录</el-button>
-          <el-button type="text" @click="$router.push('/orders')">我的订单</el-button>
-          <el-button type="text" @click="$router.push('/wallet')">钱包</el-button>
-          <template v-if="isAdmin">
-            <el-button type="text" @click="$router.push('/admin/users')">用户审核</el-button>
-            <el-button type="text" @click="$router.push('/admin/products')">商品审核</el-button>
+        <template v-if="isAdmin">
+          <el-button type="text" @click="$router.push('/products')">全部商品列表</el-button>
+          <el-button type="text" @click="$router.push('/admin/users')">用户审核</el-button>
+          <el-button type="text" @click="$router.push('/admin/products')">商品审核</el-button>
+          <el-button type="text" @click="$router.push('/admin/orders')">全站订单</el-button>
+        </template>
+        <template v-else>
+          <el-button type="text" @click="$router.push('/products')">商品列表</el-button>
+          <template v-if="user">
+            <el-button v-if="isMerchant" type="text" @click="$router.push('/my-products')">我的商品</el-button>
+            <el-button v-if="isMerchant" type="text" @click="$router.push('/sales')">销售记录</el-button>
+            <el-button type="text" @click="$router.push('/orders')">我的订单</el-button>
+            <el-button type="text" @click="$router.push('/wallet')">钱包</el-button>
           </template>
         </template>
       </nav>
@@ -23,7 +27,7 @@
           <span class="user-info">
             {{ user.username }} ({{ user.role }})
           </span>
-          <el-button type="primary" size="small" @click="handleLogout">退出</el-button>
+          <el-button :type="getLogoutButtonType()" size="small" @click="handleLogout">退出</el-button>
         </template>
         <template v-else>
           <el-button @click="$router.push('/login')">登录</el-button>
@@ -45,9 +49,19 @@ const router = useRouter()
 const user = computed(() => store.state.user)
 
 const isAdmin = computed(() => user.value?.role === 'admin')
-const isMerchantOrAdmin = computed(() => 
-  user.value?.role === 'merchant' || user.value?.role === 'admin'
-)
+const isMerchant = computed(() => user.value?.role === 'merchant')
+
+const getRoleClass = () => {
+  if (isAdmin.value) return 'navbar-admin'
+  if (isMerchant.value) return 'navbar-merchant'
+  return 'navbar-user'
+}
+
+const getLogoutButtonType = () => {
+  if (isAdmin.value) return 'danger'
+  if (isMerchant.value) return 'warning'
+  return 'primary'
+}
 
 const handleLogout = () => {
   store.logout()
@@ -58,10 +72,59 @@ const handleLogout = () => {
 
 <style scoped>
 .navbar {
-  background: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   padding: 0;
   height: 64px;
+}
+
+.navbar-admin {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.navbar-admin .logo {
+  color: #fff;
+}
+
+.navbar-admin .nav-links .el-button {
+  color: #fff;
+}
+
+.navbar-admin .nav-links .el-button:hover {
+  color: #e0e0e0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.navbar-admin .user-info {
+  color: #fff;
+}
+
+.navbar-merchant {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.navbar-merchant .logo {
+  color: #fff;
+}
+
+.navbar-merchant .nav-links .el-button {
+  color: #fff;
+}
+
+.navbar-merchant .nav-links .el-button:hover {
+  color: #e0e0e0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.navbar-merchant .user-info {
+  color: #fff;
+}
+
+.navbar-user {
+  background: #fff;
+}
+
+.navbar-user .logo {
+  color: #409eff;
 }
 
 .navbar-content {
@@ -80,7 +143,6 @@ const handleLogout = () => {
   gap: 8px;
   font-size: 20px;
   font-weight: 600;
-  color: #409eff;
   cursor: pointer;
 }
 
@@ -96,7 +158,6 @@ const handleLogout = () => {
 }
 
 .user-info {
-  color: #606266;
   font-size: 14px;
 }
 </style>

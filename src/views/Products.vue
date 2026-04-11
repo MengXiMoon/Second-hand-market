@@ -1,33 +1,53 @@
 <template>
   <Layout>
     <div class="products">
-      <h2>商品列表</h2>
+      <h2>{{ pageTitle }}</h2>
       
-      <el-row :gutter="20" v-loading="loading">
-        <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="product in products" :key="product.id">
-          <el-card class="product-card" :body-style="{ padding: '0px' }">
-            <div class="product-image">
-              <el-icon :size="60"><Goods /></el-icon>
-            </div>
-            <div class="product-info">
-              <h3>{{ product.name }}</h3>
-              <p class="description">{{ product.description }}</p>
-              <div class="product-footer">
-                <span class="price">¥{{ product.price }}</span>
-                <span class="stock">库存: {{ product.stock }}</span>
+      <template v-if="isAdminOrMerchant">
+        <el-table :data="products" v-loading="loading" style="width: 100%">
+          <el-table-column prop="id" label="ID" width="80" />
+          <el-table-column prop="name" label="商品名称" />
+          <el-table-column prop="description" label="描述" show-overflow-tooltip />
+          <el-table-column prop="price" label="价格" width="100">
+            <template #default="{ row }">¥{{ row.price }}</template>
+          </el-table-column>
+          <el-table-column prop="stock" label="库存" width="80" />
+          <el-table-column prop="merchant_id" label="商家ID" width="100" />
+          <el-table-column prop="status" label="状态" width="120">
+            <template #default="{ row }">
+              <el-tag :type="getStatusType(row.status)">{{ row.status }}</el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
+      </template>
+      
+      <template v-else>
+        <el-row :gutter="20" v-loading="loading">
+          <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="product in products" :key="product.id">
+            <el-card class="product-card" :body-style="{ padding: '0px' }">
+              <div class="product-image">
+                <el-icon :size="60"><Goods /></el-icon>
               </div>
-              <el-button 
-                type="primary" 
-                style="width: 100%; margin-top: 12px"
-                @click="handleBuy(product)"
-                :disabled="!user || product.stock < 1"
-              >
-                {{ !user ? '请先登录' : product.stock < 1 ? '已售罄' : '立即购买' }}
-              </el-button>
-            </div>
-          </el-card>
-        </el-col>
-      </el-row>
+              <div class="product-info">
+                <h3>{{ product.name }}</h3>
+                <p class="description">{{ product.description }}</p>
+                <div class="product-footer">
+                  <span class="price">¥{{ product.price }}</span>
+                  <span class="stock">库存: {{ product.stock }}</span>
+                </div>
+                <el-button 
+                  type="primary" 
+                  style="width: 100%; margin-top: 12px"
+                  @click="handleBuy(product)"
+                  :disabled="!user || product.stock < 1"
+                >
+                  {{ !user ? '请先登录' : product.stock < 1 ? '已售罄' : '立即购买' }}
+                </el-button>
+              </div>
+            </el-card>
+          </el-col>
+        </el-row>
+      </template>
 
       <el-empty v-if="!loading && products.length === 0" description="暂无商品" />
     </div>
@@ -46,6 +66,16 @@ const loading = ref(false)
 const products = ref([])
 const user = computed(() => store.state.user)
 
+const isAdmin = computed(() => user.value?.role === 'admin')
+const isMerchant = computed(() => user.value?.role === 'merchant')
+const isAdminOrMerchant = computed(() => isAdmin.value || isMerchant.value)
+
+const pageTitle = computed(() => {
+  if (isAdmin.value) return '全部商品列表'
+  if (isMerchant.value) return '商品列表'
+  return '商品列表'
+})
+
 const loadProducts = async () => {
   loading.value = true
   try {
@@ -56,6 +86,16 @@ const loadProducts = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const getStatusType = (status) => {
+  const map = {
+    'pending': 'warning',
+    'approved': 'success',
+    'rejected': 'danger',
+    'sold_out': 'info'
+  }
+  return map[status] || 'info'
 }
 
 const handleBuy = async (product) => {

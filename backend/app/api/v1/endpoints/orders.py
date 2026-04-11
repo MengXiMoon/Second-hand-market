@@ -84,3 +84,11 @@ def read_my_sales(
 ) -> Any:
     """Retrieve orders for products owned by the current merchant."""
     return db.query(Order).join(Product).filter(Product.merchant_id == current_user.id).all()
+
+@router.get("/all", response_model=List[schemas.Order])
+def read_all_orders(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_active_admin),
+) -> Any:
+    """Retrieve all orders in the system (admin only)."""
+    return db.query(Order).all()
