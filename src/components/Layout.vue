@@ -29,7 +29,7 @@ import Navbar from './Navbar.vue'
 }
 
 .main-content {
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 24px;
   flex: 1;

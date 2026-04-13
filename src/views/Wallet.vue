@@ -48,16 +48,24 @@
       
       <el-table :data="displayTransactions" v-loading="loading" style="width: 100%">
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="amount" label="金额" width="120">
+        <el-table-column prop="amount" label="金额" min-width="120">
           <template #default="{ row }">
             <span :style="{ color: row.amount > 0 ? '#67c23a' : '#f56c6c' }">
               {{ row.amount > 0 ? '+' : '' }}{{ row.amount }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="type" label="类型" width="120" />
-        <el-table-column prop="description" label="描述" />
-        <el-table-column prop="created_at" label="时间" />
+        <el-table-column prop="type" label="类型" min-width="120">
+          <template #default="{ row }">
+            {{ getTransactionTypeText(row.type) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="description" label="描述" min-width="200" />
+        <el-table-column label="时间" min-width="180">
+          <template #default="{ row }">
+            {{ formatDateTime(row.created_at) }}
+          </template>
+        </el-table-column>
       </el-table>
 
       <el-empty v-if="!loading && displayTransactions.length === 0" description="暂无交易记录" />
@@ -71,6 +79,8 @@ import { ElMessage } from 'element-plus'
 import { getWallet, getTransactions, selfRecharge, withdraw } from '../api/wallet'
 import store from '../store'
 import Layout from '../components/Layout.vue'
+import { formatDateTime } from '../utils/format'
+import { getTransactionTypeText } from '../utils/status'
 
 const loading = ref(false)
 const recharging = ref(false)

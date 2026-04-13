@@ -11,3 +11,7 @@ export const getPendingUsers = () => {
 export const verifyUser = (userId) => {
   return api.put(`/users/${userId}/verify`)
 }
+
+export const deleteUser = (userId) => {
+  return api.delete(`/users/${userId}`)
+}

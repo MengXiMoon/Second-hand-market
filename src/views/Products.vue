@@ -6,16 +6,16 @@
       <template v-if="isAdminOrMerchant">
         <el-table :data="products" v-loading="loading" style="width: 100%">
           <el-table-column prop="id" label="ID" width="80" />
-          <el-table-column prop="name" label="商品名称" />
-          <el-table-column prop="description" label="描述" show-overflow-tooltip />
-          <el-table-column prop="price" label="价格" width="100">
+          <el-table-column prop="name" label="商品名称" min-width="200" />
+          <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="price" label="价格" min-width="100">
             <template #default="{ row }">¥{{ row.price }}</template>
           </el-table-column>
           <el-table-column prop="stock" label="库存" width="80" />
-          <el-table-column prop="merchant_id" label="商家ID" width="100" />
-          <el-table-column prop="status" label="状态" width="120">
+          <el-table-column prop="merchant_id" label="商家ID" min-width="100" />
+          <el-table-column prop="status" label="状态" min-width="120">
             <template #default="{ row }">
-              <el-tag :type="getStatusType(row.status)">{{ row.status }}</el-tag>
+              <el-tag :type="getProductStatusType(row.status)">{{ getProductStatusText(row.status) }}</el-tag>
             </template>
           </el-table-column>
         </el-table>
@@ -61,6 +61,7 @@ import { getProducts } from '../api/products'
 import { createOrder } from '../api/orders'
 import store from '../store'
 import Layout from '../components/Layout.vue'
+import { getProductStatusText, getProductStatusType } from '../utils/status'
 
 const loading = ref(false)
 const products = ref([])
@@ -86,16 +87,6 @@ const loadProducts = async () => {
   } finally {
     loading.value = false
   }
-}
-
-const getStatusType = (status) => {
-  const map = {
-    'pending': 'warning',
-    'approved': 'success',
-    'rejected': 'danger',
-    'sold_out': 'info'
-  }
-  return map[status] || 'info'
 }
 
 const handleBuy = async (product) => {

@@ -7,7 +7,8 @@
       </div>
       <nav class="nav-links">
         <template v-if="isAdmin">
-          <el-button type="text" @click="$router.push('/products')">全部商品列表</el-button>
+          <el-button type="text" @click="$router.push('/admin/all-products')">全部商品</el-button>
+          <el-button type="text" @click="$router.push('/admin/all-users')">全部用户</el-button>
           <el-button type="text" @click="$router.push('/admin/users')">用户审核</el-button>
           <el-button type="text" @click="$router.push('/admin/products')">商品审核</el-button>
           <el-button type="text" @click="$router.push('/admin/orders')">全站订单</el-button>

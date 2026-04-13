@@ -63,8 +63,14 @@ const handleLogin = async () => {
         const { data: user } = await getCurrentUser()
         store.setUser(user, tokenData.access_token)
         
-        ElMessage.success('登录成功')
-        router.push('/')
+        ElMessage.success({
+          message: '登录成功',
+          duration: 500,
+          showClose: false
+        })
+        setTimeout(() => {
+          router.push('/')
+        }, 500)
       } catch (error) {
         ElMessage.error(error.response?.data?.detail || '登录失败')
       } finally {
