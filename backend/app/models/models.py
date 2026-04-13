@@ -27,6 +27,8 @@ class TransactionType(str, enum.Enum):
     PURCHASE = "purchase"
     SALE = "sale"
     REFUND = "refund"
+    WITHDRAW = "withdraw"
+    COMMISSION = "commission"
 
 class User(Base):
     __tablename__ = "users"

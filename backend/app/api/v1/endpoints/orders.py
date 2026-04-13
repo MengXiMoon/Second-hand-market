@@ -40,15 +40,33 @@ def create_order(
     )
     db.add(buyer_transaction)
 
-    # Transaction: Add to merchant
+    # Platform Commission (1%)
+    commission = product.price * 0.01
+    merchant_amount = product.price - commission
+
+    # Find an admin to receive the commission
+    admin_user = db.query(User).filter(User.role == UserRole.ADMIN).first()
+    if admin_user:
+        admin_wallet = db.query(Wallet).filter(Wallet.user_id == admin_user.id).first()
+        if admin_wallet:
+            admin_wallet.balance += commission
+            admin_transaction = Transaction(
+                wallet_id=admin_user.id,
+                amount=commission,
+                type=TransactionType.COMMISSION,
+                description=f"Commission from {product.name} sale (Buyer: {current_user.username})"
+            )
+            db.add(admin_transaction)
+
+    # Transaction: Add to merchant (net of commission)
     merchant_wallet = db.query(Wallet).filter(Wallet.user_id == product.merchant_id).first()
     if merchant_wallet:
-        merchant_wallet.balance += product.price
+        merchant_wallet.balance += merchant_amount
         merchant_transaction = Transaction(
             wallet_id=product.merchant_id,
-            amount=product.price,
+            amount=merchant_amount,
             type=TransactionType.SALE,
-            description=f"Sold {product.name}"
+            description=f"Sold {product.name} (Platform fee: {commission})"
         )
         db.add(merchant_transaction)
 

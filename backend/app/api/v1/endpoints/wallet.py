@@ -51,6 +51,66 @@ def admin_recharge(
     db.refresh(wallet)
     return wallet
 
+@router.post("/self-recharge", response_model=schemas.Wallet)
+def self_recharge(
+    amount: float,
+    description: str = "Self Recharge",
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """Perform a self-wallet recharge (Any authenticated user)."""
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Recharge amount must be positive")
+    
+    wallet = db.query(Wallet).filter(Wallet.user_id == current_user.id).first()
+    if not wallet:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    
+    # Update balance
+    wallet.balance += amount
+    
+    # Record transaction
+    transaction = Transaction(
+        wallet_id=wallet.user_id,
+        amount=amount,
+        type=TransactionType.RECHARGE,
+        description=description
+    )
+    db.add(transaction)
+    db.commit()
+    db.refresh(wallet)
+    return wallet
+
+@router.post("/withdraw", response_model=schemas.Wallet)
+def withdraw_funds(
+    amount: float,
+    description: str = "Withdrawal",
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """Perform a wallet withdrawal (Any authenticated user)."""
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Withdrawal amount must be positive")
+    
+    wallet = db.query(Wallet).filter(Wallet.user_id == current_user.id).first()
+    if not wallet or wallet.balance < amount:
+        raise HTTPException(status_code=400, detail="Insufficient wallet balance")
+    
+    # Update balance
+    wallet.balance -= amount
+    
+    # Record transaction
+    transaction = Transaction(
+        wallet_id=wallet.user_id,
+        amount=-amount,
+        type=TransactionType.WITHDRAW,
+        description=description
+    )
+    db.add(transaction)
+    db.commit()
+    db.refresh(wallet)
+    return wallet
+
 @router.get("/transactions", response_model=List[schemas.Transaction])
 def read_all_transactions(
     db: Session = Depends(get_db),
