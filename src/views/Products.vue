@@ -55,7 +55,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getProducts } from '../api/products'
 import { createOrder } from '../api/orders'
@@ -65,7 +65,7 @@ import { getProductStatusText, getProductStatusType } from '../utils/status'
 
 const loading = ref(false)
 const products = ref([])
-const user = computed(() => store.state.user)
+const user = computed(() => store.getCurrentSession().user)
 
 const isAdmin = computed(() => user.value?.role === 'admin')
 const isMerchant = computed(() => user.value?.role === 'merchant')
@@ -109,6 +109,11 @@ const handleBuy = async (product) => {
 
 onMounted(() => {
   loadProducts()
+  window.addEventListener('refresh-data', loadProducts)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('refresh-data', loadProducts)
 })
 </script>
 

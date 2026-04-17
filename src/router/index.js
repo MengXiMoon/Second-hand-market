@@ -27,22 +27,10 @@ const routes = [
     meta: { requiresAuth: false }
   },
   {
-    path: '/my-products',
-    name: 'MyProducts',
-    component: () => import('../views/MyProducts.vue'),
-    meta: { requiresAuth: true, requiresMerchant: true }
-  },
-  {
     path: '/orders',
     name: 'Orders',
     component: () => import('../views/Orders.vue'),
     meta: { requiresAuth: true }
-  },
-  {
-    path: '/sales',
-    name: 'Sales',
-    component: () => import('../views/Sales.vue'),
-    meta: { requiresAuth: true, requiresMerchant: true }
   },
   {
     path: '/wallet',
@@ -50,6 +38,38 @@ const routes = [
     component: () => import('../views/Wallet.vue'),
     meta: { requiresAuth: true }
   },
+  // Merchant Routes (Strictly prefixed)
+  {
+    path: '/merchant',
+    name: 'MerchantHome',
+    component: () => import('../views/Home.vue'),
+    meta: { requiresAuth: true, requiresMerchant: true }
+  },
+  {
+    path: '/merchant/products',
+    name: 'MerchantProducts',
+    component: () => import('../views/Products.vue'),
+    meta: { requiresAuth: true, requiresMerchant: true }
+  },
+  {
+    path: '/merchant/my-products',
+    name: 'MerchantMyProducts',
+    component: () => import('../views/MyProducts.vue'),
+    meta: { requiresAuth: true, requiresMerchant: true }
+  },
+  {
+    path: '/merchant/sales',
+    name: 'MerchantSales',
+    component: () => import('../views/Sales.vue'),
+    meta: { requiresAuth: true, requiresMerchant: true }
+  },
+  {
+    path: '/merchant/wallet',
+    name: 'MerchantWallet',
+    component: () => import('../views/Wallet.vue'),
+    meta: { requiresAuth: true, requiresMerchant: true }
+  },
+  // Admin Routes (Strictly prefixed)
   {
     path: '/admin/users',
     name: 'AdminUsers',
@@ -88,14 +108,20 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('token')
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const path = to.path
+  let role = 'user'
+  if (path.startsWith('/admin')) {
+    role = 'admin'
+  } else if (path.startsWith('/merchant')) {
+    role = 'merchant'
+  }
+
+  const token = localStorage.getItem(`${role}_token`)
+  const user = JSON.parse(localStorage.getItem(`${role}_info`) || '{}')
 
   if (to.meta.requiresAuth && !token) {
     ElMessage.warning('请先登录')
     next('/login')
-  } else if (to.meta.guestOnly && token) {
-    next('/')
   } else if (to.meta.requiresAdmin && user.role !== 'admin') {
     ElMessage.error('权限不足')
     next('/')

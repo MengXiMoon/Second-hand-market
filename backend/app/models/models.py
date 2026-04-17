@@ -1,8 +1,12 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Float, DateTime, Enum
 from sqlalchemy.orm import relationship
 import enum
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.db.session import Base
+
+def get_beijing_time():
+    # Offset UTC by 8 hours for Beijing Time
+    return datetime.utcnow() + timedelta(hours=8)
 
 class UserRole(str, enum.Enum):
     USER = "user"
@@ -39,7 +43,7 @@ class User(Base):
     hashed_password = Column(String)
     role = Column(Enum(UserRole), default=UserRole.USER)
     is_verified = Column(Boolean, default=False) # Admin must verify registration
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=get_beijing_time)
 
     products = relationship("Product", back_populates="merchant")
     orders = relationship("Order", back_populates="buyer")
@@ -55,7 +59,7 @@ class Product(Base):
     stock = Column(Integer, default=1)
     status = Column(Enum(ProductStatus), default=ProductStatus.PENDING)
     merchant_id = Column(Integer, ForeignKey("users.id"))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=get_beijing_time)
 
     merchant = relationship("User", back_populates="products")
 
@@ -67,7 +71,7 @@ class Order(Base):
     product_id = Column(Integer, ForeignKey("products.id"))
     total_price = Column(Float)
     status = Column(Enum(OrderStatus), default=OrderStatus.ORDERED)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=get_beijing_time)
 
     buyer = relationship("User", back_populates="orders")
     product = relationship("Product")
@@ -89,6 +93,6 @@ class Transaction(Base):
     amount = Column(Float)
     type = Column(Enum(TransactionType))
     description = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=get_beijing_time)
 
     wallet = relationship("Wallet", back_populates="transactions")

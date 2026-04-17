@@ -1,4 +1,5 @@
 import axios from 'axios'
+import store from '../store'
 
 const api = axios.create({
   baseURL: 'http://localhost:8000/v1',
@@ -7,7 +8,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
   config => {
-    const token = localStorage.getItem('token')
+    const token = store.getAuthToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -22,8 +23,9 @@ api.interceptors.response.use(
   response => response,
   error => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
+      store.logout('user')
+      store.logout('merchant')
+      store.logout('admin')
       window.location.href = '/login'
     }
     return Promise.reject(error)

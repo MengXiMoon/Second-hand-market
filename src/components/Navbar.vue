@@ -1,34 +1,45 @@
 <template>
   <el-header :class="['navbar', getRoleClass()]">
     <div class="navbar-content">
-      <div class="logo" @click="$router.push('/')">
+      <div class="logo" @click="handleLogoClick">
         <el-icon :size="24"><ShoppingCart /></el-icon>
         <span>二手市场</span>
       </div>
       <nav class="nav-links">
-        <template v-if="isAdmin">
+        <!-- 路由路径隔离：基于当前 URL 前缀展示对应的端入口，实现视觉上的多端分离 -->
+        <!-- Admin Context Links -->
+        <template v-if="activeRole === 'admin'">
           <el-button type="text" @click="$router.push('/admin/all-products')">全部商品</el-button>
           <el-button type="text" @click="$router.push('/admin/all-users')">全部用户</el-button>
           <el-button type="text" @click="$router.push('/admin/users')">用户审核</el-button>
           <el-button type="text" @click="$router.push('/admin/products')">商品审核</el-button>
           <el-button type="text" @click="$router.push('/admin/orders')">全站订单</el-button>
         </template>
+
+        <!-- Merchant Context Links -->
+        <template v-else-if="activeRole === 'merchant'">
+          <el-button type="text" @click="$router.push('/merchant/products')">商品列表</el-button>
+          <el-button type="text" @click="$router.push('/merchant/my-products')">我的商品</el-button>
+          <el-button type="text" @click="$router.push('/merchant/sales')">销售记录</el-button>
+          <el-button type="text" @click="$router.push('/merchant/wallet')">钱包</el-button>
+        </template>
+
+        <!-- User/Public Context Links -->
         <template v-else>
           <el-button type="text" @click="$router.push('/products')">商品列表</el-button>
-          <template v-if="user">
-            <el-button v-if="isMerchant" type="text" @click="$router.push('/my-products')">我的商品</el-button>
-            <el-button v-if="isMerchant" type="text" @click="$router.push('/sales')">销售记录</el-button>
+          <template v-if="userSession.token">
             <el-button type="text" @click="$router.push('/orders')">我的订单</el-button>
             <el-button type="text" @click="$router.push('/wallet')">钱包</el-button>
           </template>
         </template>
       </nav>
+
       <div class="user-section">
-        <template v-if="user">
+        <template v-if="userInfo">
           <span class="user-info">
-            {{ user.username }} ({{ user.role }})
+            {{ userInfo.username }} ({{ userInfo.role === 'merchant' ? '商家' : (userInfo.role === 'admin' ? '管理员' : '用户') }})
           </span>
-          <el-button :type="getLogoutButtonType()" size="small" @click="handleLogout">退出</el-button>
+          <el-button :type="getLogoutButtonType()" size="small" @click="handleLogout">退出当前端</el-button>
         </template>
         <template v-else>
           <el-button @click="$router.push('/login')">登录</el-button>
@@ -47,27 +58,45 @@ import store from '../store'
 
 const router = useRouter()
 
-const user = computed(() => store.state.user)
+// Get session status for ALL roles
+const userSession = computed(() => store.state.user)
+const merchantSession = computed(() => store.state.merchant)
+const adminSession = computed(() => store.state.admin)
 
-const isAdmin = computed(() => user.value?.role === 'admin')
-const isMerchant = computed(() => user.value?.role === 'merchant')
+// Current active context session
+const currentSession = computed(() => store.getCurrentSession())
+const userInfo = computed(() => currentSession.value.user)
+const activeRole = computed(() => store.getActiveRole())
+
+const isAdmin = computed(() => userInfo.value?.role === 'admin')
+const isMerchant = computed(() => userInfo.value?.role === 'merchant')
+
+// Helper to check if ANY role is logged in
+const anyLoggedIn = computed(() => !!(userSession.value.token || merchantSession.value.token || adminSession.value.token))
 
 const getRoleClass = () => {
-  if (isAdmin.value) return 'navbar-admin'
-  if (isMerchant.value) return 'navbar-merchant'
+  if (activeRole.value === 'admin') return 'navbar-admin'
+  if (activeRole.value === 'merchant') return 'navbar-merchant'
   return 'navbar-user'
 }
 
+const handleLogoClick = () => {
+  if (activeRole.value === 'admin') router.push('/admin/all-users')
+  else if (activeRole.value === 'merchant') router.push('/merchant')
+  else router.push('/')
+}
+
 const getLogoutButtonType = () => {
-  if (isAdmin.value) return 'danger'
-  if (isMerchant.value) return 'warning'
+  if (activeRole.value === 'admin') return 'danger'
+  if (activeRole.value === 'merchant') return 'warning'
   return 'primary'
 }
 
 const handleLogout = () => {
-  store.logout()
+  const role = store.getActiveRole()
+  store.logout(role)
   ElMessage.success('已退出登录')
-  router.push('/')
+  router.push('/login')
 }
 </script>
 

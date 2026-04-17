@@ -57,10 +57,16 @@ const handleLogin = async () => {
       loading.value = true
       try {
         const { data: tokenData } = await login(form.username, form.password)
-        store.state.token = tokenData.access_token
-        localStorage.setItem('token', tokenData.access_token)
         
-        const { data: user } = await getCurrentUser()
+        // Temporarily set token for the next info fetch (api.interceptors use store.getAuthToken)
+        // Since we are likely on /login (role='user'), we can't easily fetch user info
+        // without knowing the role. But our backend /me endpoint works with any valid token.
+        // We'll manually set the token in the request config for this one call or use a helper.
+        
+        // Actually, we can fetch user profile first if we had a dedicated token. 
+        // For simplicity, let's just use the returned token to get current user.
+        const { data: user } = await getCurrentUser(tokenData.access_token)
+        
         store.setUser(user, tokenData.access_token)
         
         ElMessage.success({
@@ -68,8 +74,15 @@ const handleLogin = async () => {
           duration: 500,
           showClose: false
         })
+        
         setTimeout(() => {
-          router.push('/')
+          if (user.role === 'admin') {
+            router.push('/admin/all-users')
+          } else if (user.role === 'merchant') {
+            router.push('/merchant/my-products')
+          } else {
+            router.push('/')
+          }
         }, 500)
       } catch (error) {
         ElMessage.error(error.response?.data?.detail || '登录失败')

@@ -1,5 +1,5 @@
 from typing import Any, List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.api import deps
@@ -15,6 +15,7 @@ def create_order(
     db: Session = Depends(get_db),
     order_in: schemas.OrderCreate,
     current_user: User = Depends(deps.get_current_user),
+    background_tasks: BackgroundTasks,
 ) -> Any:
     """Create a new order (Purchase Product)."""
     product = db.query(Product).filter(Product.id == order_in.product_id).first()
@@ -85,6 +86,20 @@ def create_order(
     db.add(order)
     db.commit()
     db.refresh(order)
+
+    # Real-time Notification for Merchant using BackgroundTasks
+    from app.core.websocket_manager import manager
+    notification_payload = {
+        "type": "new_order",
+        "message": f"您有新的订单！商品：{product.name}",
+        "data": {
+            "order_id": order.id,
+            "product_name": product.name,
+            "price": product.price
+        }
+    }
+    background_tasks.add_task(manager.send_personal_message, notification_payload, product.merchant_id)
+
     return order
 
 @router.get("/my", response_model=List[schemas.Order])

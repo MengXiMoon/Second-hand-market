@@ -1,5 +1,5 @@
 from typing import Any, List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.api import deps
@@ -56,6 +56,7 @@ def read_pending_products(
 def audit_product(
     product_id: int,
     approve: bool,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_admin),
 ) -> Any:
@@ -63,9 +64,25 @@ def audit_product(
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
+    
+    status_label = "通过" if approve else "驳回"
     product.status = ProductStatus.APPROVED if approve else ProductStatus.REJECTED
     db.commit()
     db.refresh(product)
+
+    # Real-time Notification for Merchant
+    from app.core.websocket_manager import manager
+    notification_payload = {
+        "type": "product_audit",
+        "message": f"商品审核通知：您的商品 [{product.name}] 已被管理员{status_label}。",
+        "data": {
+            "product_id": product.id,
+            "status": product.status,
+            "product_name": product.name
+        }
+    }
+    background_tasks.add_task(manager.send_personal_message, notification_payload, product.merchant_id)
+
     return product
 
 @router.put("/{product_id}/status", response_model=schemas.Product)

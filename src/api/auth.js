@@ -11,6 +11,10 @@ export const register = (userData) => {
   return api.post('/register', userData)
 }
 
-export const getCurrentUser = () => {
-  return api.get('/users/me')
+export const getCurrentUser = (token = null) => {
+  const config = {}
+  if (token) {
+    config.headers = { Authorization: `Bearer ${token}` }
+  }
+  return api.get('/users/me', config)
 }

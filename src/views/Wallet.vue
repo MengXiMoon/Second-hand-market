@@ -74,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getWallet, getTransactions, selfRecharge, withdraw } from '../api/wallet'
 import store from '../store'
@@ -91,7 +91,7 @@ const rechargeForm = ref({ amount: 100 })
 const withdrawForm = ref({ amount: 100 })
 const wallet = ref(null)
 const transactions = ref([])
-const user = computed(() => store.state.user)
+const user = computed(() => store.getCurrentSession().user)
 
 const displayTransactions = computed(() => {
   if (user.value?.role === 'admin') {
@@ -165,9 +165,18 @@ const loadTransactions = async () => {
   }
 }
 
-onMounted(() => {
+const refreshAllData = () => {
   loadWallet()
   loadTransactions()
+}
+
+onMounted(() => {
+  refreshAllData()
+  window.addEventListener('refresh-data', refreshAllData)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('refresh-data', refreshAllData)
 })
 </script>
 
