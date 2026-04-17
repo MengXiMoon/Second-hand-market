@@ -22,6 +22,8 @@
               type="success" 
               size="small" 
               @click="handleAudit(row, true)"
+              :loading="auditLoading === row.id"
+              :disabled="auditLoading !== null && auditLoading !== row.id"
             >
               通过
             </el-button>
@@ -30,6 +32,8 @@
               size="small" 
               @click="handleAudit(row, false)"
               style="margin-left: 8px"
+              :loading="auditLoading === row.id"
+              :disabled="auditLoading !== null && auditLoading !== row.id"
             >
               拒绝
             </el-button>
@@ -43,12 +47,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getPendingProducts, auditProduct } from '../../api/products'
 import Layout from '../../components/Layout.vue'
 
 const loading = ref(false)
+const auditLoading = ref(null) // Stores current auditing product ID
 const products = ref([])
 
 const loadProducts = async () => {
@@ -65,24 +70,47 @@ const loadProducts = async () => {
 
 const handleAudit = async (product, approve) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要${approve ? '通过' : '拒绝'}商品「${product.name}」吗？`,
-      '确认审核',
-      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
-    )
-    
-    await auditProduct(product.id, approve)
-    ElMessage.success('审核成功')
+    let remark = ''
+    if (!approve) {
+      // Use prompt for rejection reason
+      const { value } = await ElMessageBox.prompt(
+        `请输入对商品「${product.name}」的驳回理由：`,
+        '驳回确认',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          inputPattern: /.+/,
+          inputErrorMessage: '理由不能为空'
+        }
+      )
+      remark = value
+    } else {
+      await ElMessageBox.confirm(
+        `确定要通过商品「${product.name}」吗？`,
+        '审核通过确认',
+        { confirmButtonText: '确定', cancelButtonText: '取消', type: 'success' }
+      )
+    }
+    auditLoading.value = product.id
+    await auditProduct(product.id, approve, remark)
+    ElMessage.success('操作成功')
     loadProducts()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('审核失败')
+      ElMessage.error(error.response?.data?.detail || '操作失败')
     }
+  } finally {
+    auditLoading.value = null
   }
 }
 
 onMounted(() => {
   loadProducts()
+  window.addEventListener('refresh-data', loadProducts)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('refresh-data', loadProducts)
 })
 </script>
 

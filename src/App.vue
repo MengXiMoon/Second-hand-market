@@ -5,11 +5,12 @@ import { ElNotification } from 'element-plus'
 import store from './store'
 
 const sockets = {}
+let refreshTimer = null
 
-const connectWebSocket = (role, user) => {
-  if (sockets[role]) return // Already connected
+const connectWebSocket = (uid) => {
+  if (sockets[uid]) return 
   
-  const ws = new WebSocket(`ws://localhost:8000/v1/ws/${user.id}`)
+  const ws = new WebSocket(`ws://localhost:8000/v1/ws/${uid}`)
   
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data)
@@ -20,7 +21,8 @@ const connectWebSocket = (role, user) => {
        */
       const roleMap = {
         'new_order': 'merchant',   // 新订单属于商家端
-        'product_audit': 'merchant' // 商品审核属于商家端
+        'product_audit': 'merchant', // 商品审核属于商家端
+        'admin_event': 'admin'      // 管理事件属于管理端
       }
       
       const targetRole = roleMap[data.type]
@@ -30,7 +32,8 @@ const connectWebSocket = (role, user) => {
       if (targetRole && currentRole === targetRole) {
         const typeMap = {
           'new_order': { title: '新订单通知', type: 'success' },
-          'product_audit': { title: '商品审核通知', type: data.data.status === 'approved' ? 'success' : 'warning' }
+          'product_audit': { title: '商品审核通知', type: data.data.status === 'approved' ? 'success' : 'warning' },
+          'admin_event': { title: '管理提醒', type: 'info' }
         }
         const config = typeMap[data.type] || { title: '通知', type: 'info' }
         
@@ -43,34 +46,62 @@ const connectWebSocket = (role, user) => {
         })
       }
       
-      // 无论是否弹出窗口，都在后台触发全局数据更新（确保切换标签页时数据已刷新）
-      window.dispatchEvent(new CustomEvent('refresh-data'))
+      // 增加 300ms 延迟，确保后端数据库写入完全完成后再刷新前端数据
+      // 解决管理员端看到通知但列表没刷新的“竞态”问题
+      clearTimeout(refreshTimer)
+      refreshTimer = setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('refresh-data'))
+      }, 300)
     }
   }
 
   ws.onclose = () => {
-    delete sockets[role]
-    // Reconnect after 5 seconds if still logged in
+    if (sockets[uid] === ws) {
+      delete sockets[uid]
+    }
+    // Reconnect after 5 seconds if anyone still needs this UID
     setTimeout(() => {
-      const currentSession = store.state[role]
-      if (currentSession?.token && currentSession?.user) {
-        connectWebSocket(role, currentSession.user)
-      }
+      checkAndReconnect(uid)
     }, 5000)
   }
 
-  sockets[role] = ws
+  sockets[uid] = ws
+}
+
+const checkAndReconnect = (uid) => {
+  const roles = ['user', 'merchant', 'admin']
+  const stillLoggedIn = roles.some(role => {
+    const session = store.state[role]
+    return session?.token && session?.user && session.user.id === uid
+  })
+  if (stillLoggedIn && !sockets[uid]) {
+    connectWebSocket(uid)
+  }
 }
 
 const updateConnections = () => {
   const roles = ['user', 'merchant', 'admin']
+  const activeUserIds = new Set()
+  
   roles.forEach(role => {
     const session = store.state[role]
     if (session?.token && session?.user) {
-      connectWebSocket(role, session.user)
-    } else if (sockets[role]) {
-      sockets[role].close()
-      delete sockets[role]
+      const uid = session.user.id
+      activeUserIds.add(uid)
+      if (!sockets[uid]) {
+        connectWebSocket(uid)
+      }
+    }
+  })
+
+  // Close sockets for users that are no longer logged in any role
+  Object.keys(sockets).forEach(uidStr => {
+    const uid = Number(uidStr)
+    if (!activeUserIds.has(uid)) {
+      if (sockets[uid]) {
+        sockets[uid].close()
+        delete sockets[uid]
+      }
     }
   })
 }

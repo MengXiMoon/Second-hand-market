@@ -87,18 +87,22 @@ def create_order(
     db.commit()
     db.refresh(order)
 
-    # Real-time Notification for Merchant using BackgroundTasks
+    # Real-time Notification    # Notify Merchant about new order
     from app.core.websocket_manager import manager
     notification_payload = {
         "type": "new_order",
         "message": f"您有新的订单！商品：{product.name}",
-        "data": {
-            "order_id": order.id,
-            "product_name": product.name,
-            "price": product.price
-        }
+        "data": {"order_id": order.id, "product_name": product.name}
     }
     background_tasks.add_task(manager.send_personal_message, notification_payload, product.merchant_id)
+
+    # Notify Admin about site-wide order
+    admin_notification = {
+        "type": "admin_event",
+        "message": f"管理提醒：全站新订单！用户 [{current_user.username}] 购买了 [{product.name}]。",
+        "data": {"order_id": order.id, "product_name": product.name}
+    }
+    background_tasks.add_task(manager.broadcast, admin_notification)
 
     return order
 

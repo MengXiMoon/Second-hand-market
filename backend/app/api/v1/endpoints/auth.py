@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
@@ -41,6 +41,7 @@ def register_user(
     *,
     db: Session = Depends(get_db),
     user_in: schemas.UserCreate,
+    background_tasks: BackgroundTasks,
 ) -> Any:
     """Create new user registration (Pending Administrator Approval)."""
     user = db.query(User).filter(User.username == user_in.username).first()
@@ -75,5 +76,14 @@ def register_user(
     wallet = Wallet(user_id=db_user.id, balance=0.0)
     db.add(wallet)
     db.commit()
+
+    # Notify Admin about new user registration
+    from app.core.websocket_manager import manager
+    notification_payload = {
+        "type": "admin_event",
+        "message": f"管理提醒：新用户 [{db_user.username}] 注册，等待审核。",
+        "data": {"user_id": db_user.id, "username": db_user.username}
+    }
+    background_tasks.add_task(manager.broadcast, notification_payload)
     
     return db_user

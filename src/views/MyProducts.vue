@@ -19,11 +19,33 @@
         <el-table-column prop="stock" label="库存" width="80" />
         <el-table-column prop="status" label="状态" min-width="120">
           <template #default="{ row }">
-            <el-tag :type="getProductStatusType(row.status)">{{ getProductStatusText(row.status) }}</el-tag>
+            <el-popover
+              v-if="row.status === 'rejected' && row.audit_remark"
+              placement="top"
+              title="驳回理由"
+              :width="200"
+              trigger="hover"
+              :content="row.audit_remark"
+            >
+              <template #reference>
+                <el-tag :type="getProductStatusType(row.status)" style="cursor: pointer">
+                  {{ getProductStatusText(row.status) }}
+                  <el-icon><InfoFilled /></el-icon>
+                </el-tag>
+              </template>
+            </el-popover>
+            <el-tag v-else :type="getProductStatusType(row.status)">{{ getProductStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" min-width="150" fixed="right">
+        <el-table-column label="操作" min-width="180" fixed="right">
           <template #default="{ row }">
+            <el-button 
+              type="primary" 
+              size="small" 
+              @click="handleEdit(row)"
+            >
+              编辑/重审
+            </el-button>
             <el-button 
               v-if="row.status === 'approved'"
               type="danger" 
@@ -38,7 +60,7 @@
 
       <el-empty v-if="!loading && products.length === 0" description="暂无商品" />
 
-      <el-dialog v-model="showAddDialog" title="发布商品" width="500px">
+      <el-dialog v-model="showAddDialog" :title="isEdit ? '编辑商品' : '发布商品'" width="500px">
         <el-form :model="productForm" :rules="productRules" ref="productFormRef" label-width="80px">
           <el-form-item label="商品名称" prop="name">
             <el-input v-model="productForm.name" placeholder="请输入商品名称" />
@@ -57,10 +79,20 @@
           <el-form-item label="库存" prop="stock">
             <el-input-number v-model="productForm.stock" :min="0" style="width: 100%" />
           </el-form-item>
+          <div v-if="isEdit && currentProduct?.status === 'rejected'" class="audit-hint">
+            <el-alert
+              title="提示：保存后将重新进入待审核状态"
+              type="warning"
+              show-icon
+              :closable="false"
+            />
+          </div>
         </el-form>
         <template #footer>
           <el-button @click="showAddDialog = false">取消</el-button>
-          <el-button type="primary" @click="handleAddProduct" :loading="adding">发布</el-button>
+          <el-button type="primary" @click="handleSubmit" :loading="saving">
+            {{ isEdit ? '保存并重审' : '发布' }}
+          </el-button>
         </template>
       </el-dialog>
     </div>
@@ -68,16 +100,19 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getMyProducts, createProduct, updateProductStatus } from '../api/products'
+import { InfoFilled, Plus } from '@element-plus/icons-vue'
+import { getMyProducts, createProduct, updateProduct, updateProductStatus } from '../api/products'
 import Layout from '../components/Layout.vue'
 import { getProductStatusText, getProductStatusType } from '../utils/status'
 
 const loading = ref(false)
-const adding = ref(false)
+const saving = ref(false)
 const products = ref([])
 const showAddDialog = ref(false)
+const isEdit = ref(false)
+const currentProduct = ref(null)
 const productFormRef = ref(null)
 
 const productForm = reactive({
@@ -106,26 +141,53 @@ const loadProducts = async () => {
   }
 }
 
-const handleAddProduct = async () => {
+const handleEdit = (product) => {
+  isEdit.value = true
+  currentProduct.value = product
+  Object.assign(productForm, {
+    name: product.name,
+    description: product.description,
+    price: product.price,
+    stock: product.stock
+  })
+  showAddDialog.value = true
+}
+
+const handleSubmit = async () => {
   if (!productFormRef.value) return
   
   await productFormRef.value.validate(async (valid) => {
     if (valid) {
-      adding.value = true
+      saving.value = true
       try {
-        await createProduct(productForm)
-        ElMessage.success('商品发布成功，等待审核')
+        if (isEdit.value) {
+          await updateProduct(currentProduct.value.id, productForm)
+          ElMessage.success('更新成功，已重新提交审核')
+        } else {
+          await createProduct(productForm)
+          ElMessage.success('商品发布成功，等待审核')
+        }
         showAddDialog.value = false
-        Object.assign(productForm, { name: '', description: '', price: 0, stock: 1 })
+        resetForm()
         loadProducts()
       } catch (error) {
-        ElMessage.error(error.response?.data?.detail || '发布失败')
+        ElMessage.error(error.response?.data?.detail || '操作失败')
       } finally {
-        adding.value = false
+        saving.value = false
       }
     }
   })
 }
+
+const resetForm = () => {
+  isEdit.value = false
+  currentProduct.value = null
+  Object.assign(productForm, { name: '', description: '', price: 0, stock: 1 })
+}
+
+watch(showAddDialog, (val) => {
+  if (!val) resetForm()
+})
 
 const handleUpdateStatus = async (product, status) => {
   try {
@@ -139,6 +201,11 @@ const handleUpdateStatus = async (product, status) => {
 
 onMounted(() => {
   loadProducts()
+  window.addEventListener('refresh-data', loadProducts)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('refresh-data', loadProducts)
 })
 </script>
 

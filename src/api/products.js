@@ -16,8 +16,12 @@ export const createProduct = (productData) => {
   return api.post('/products', productData)
 }
 
-export const auditProduct = (productId, approve) => {
-  return api.put(`/products/${productId}/audit`, null, { params: { approve } })
+export const auditProduct = (productId, approve, remark = '') => {
+  return api.put(`/products/${productId}/audit`, null, { params: { approve, remark } })
+}
+
+export const updateProduct = (productId, productData) => {
+  return api.put(`/products/${productId}`, productData)
 }
 
 export const updateProductStatus = (productId, status) => {

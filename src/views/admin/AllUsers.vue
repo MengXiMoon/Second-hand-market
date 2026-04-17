@@ -27,7 +27,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getUsers } from '../../api/users'
 import Layout from '../../components/Layout.vue'
@@ -50,6 +50,11 @@ const loadUsers = async () => {
 
 onMounted(() => {
   loadUsers()
+  window.addEventListener('refresh-data', loadUsers)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('refresh-data', loadUsers)
 })
 </script>
 

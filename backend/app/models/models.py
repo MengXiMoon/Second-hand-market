@@ -59,6 +59,7 @@ class Product(Base):
     stock = Column(Integer, default=1)
     status = Column(Enum(ProductStatus), default=ProductStatus.PENDING)
     merchant_id = Column(Integer, ForeignKey("users.id"))
+    audit_remark = Column(String, nullable=True)
     created_at = Column(DateTime, default=get_beijing_time)
 
     merchant = relationship("User", back_populates="products")

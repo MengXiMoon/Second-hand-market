@@ -64,6 +64,7 @@ class Product(ProductBase):
     id: int
     status: ProductStatus
     merchant_id: int
+    audit_remark: Optional[str] = None
     created_at: datetime
 
     class Config:

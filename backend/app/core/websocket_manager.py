@@ -8,8 +8,17 @@ class ConnectionManager:
 
     async def connect(self, websocket: WebSocket, user_id: int):
         await websocket.accept()
-        if user_id not in self.active_connections:
+        # Enforce single connection per user_id to prevent duplicate notifications
+        if user_id in self.active_connections:
+            for old_connection in self.active_connections[user_id]:
+                try:
+                    await old_connection.close(code=1000, reason="New connection established")
+                except Exception:
+                    pass
             self.active_connections[user_id] = []
+        else:
+            self.active_connections[user_id] = []
+        
         self.active_connections[user_id].append(websocket)
 
     def disconnect(self, websocket: WebSocket, user_id: int):
@@ -21,11 +30,20 @@ class ConnectionManager:
 
     async def send_personal_message(self, message: dict, user_id: int):
         if user_id in self.active_connections:
-            for connection in self.active_connections[user_id]:
+            # Create a copy of the list to safely iterate while removing
+            for connection in list(self.active_connections[user_id]):
                 try:
                     await connection.send_json(message)
                 except Exception:
-                    # Connection might be stale
-                    pass
+                    self.disconnect(connection, user_id)
+
+    async def broadcast(self, message: dict):
+        # Iterate over a copy of the keys to safely modify the dict
+        for user_id in list(self.active_connections.keys()):
+            for connection in list(self.active_connections[user_id]):
+                try:
+                    await connection.send_json(message)
+                except Exception:
+                    self.disconnect(connection, user_id)
 
 manager = ConnectionManager()

@@ -28,7 +28,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getAllOrders } from '../../api/orders'
 import Layout from '../../components/Layout.vue'
@@ -52,6 +52,11 @@ const loadOrders = async () => {
 
 onMounted(() => {
   loadOrders()
+  window.addEventListener('refresh-data', loadOrders)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('refresh-data', loadOrders)
 })
 </script>
 

@@ -23,6 +23,7 @@ def create_product(
     *,
     db: Session = Depends(get_db),
     product_in: schemas.ProductCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(deps.get_current_merchant),
 ) -> Any:
     """Upload a new product (Merchant only, Pending Audit)."""
@@ -34,6 +35,16 @@ def create_product(
     db.add(product)
     db.commit()
     db.refresh(product)
+
+    # Notify Admin about new product audit request
+    from app.core.websocket_manager import manager
+    notification_payload = {
+        "type": "admin_event",
+        "message": f"管理提醒：商家 [{current_user.username}] 发布了新商品 [{product.name}]，等待审核。",
+        "data": {"product_id": product.id, "product_name": product.name}
+    }
+    background_tasks.add_task(manager.broadcast, notification_payload)
+
     return product
 
 @router.get("/my", response_model=List[schemas.Product])
@@ -57,6 +68,7 @@ def audit_product(
     product_id: int,
     approve: bool,
     background_tasks: BackgroundTasks,
+    remark: str = None, # Optional reason
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_admin),
 ) -> Any:
@@ -67,6 +79,7 @@ def audit_product(
     
     status_label = "通过" if approve else "驳回"
     product.status = ProductStatus.APPROVED if approve else ProductStatus.REJECTED
+    product.audit_remark = remark
     db.commit()
     db.refresh(product)
 
@@ -74,15 +87,43 @@ def audit_product(
     from app.core.websocket_manager import manager
     notification_payload = {
         "type": "product_audit",
-        "message": f"商品审核通知：您的商品 [{product.name}] 已被管理员{status_label}。",
+        "message": f"商品审核通知：您的商品 [{product.name}] 已被管理员{status_label}。{f'理由：{remark}' if remark else ''}",
         "data": {
             "product_id": product.id,
             "status": product.status,
-            "product_name": product.name
+            "product_name": product.name,
+            "remark": remark
         }
     }
     background_tasks.add_task(manager.send_personal_message, notification_payload, product.merchant_id)
 
+    return product
+
+@router.put("/{product_id}", response_model=schemas.Product)
+def update_product(
+    *,
+    db: Session = Depends(get_db),
+    product_id: int,
+    product_in: schemas.ProductBase,
+    current_user: User = Depends(deps.get_current_merchant),
+) -> Any:
+    """Update a product and reset status to pending (Merchant only)."""
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    if product.merchant_id != current_user.id and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Update fields from product_in
+    for field, value in product_in.dict().items():
+        setattr(product, field, value)
+    
+    # Reset status to pending for re-audit if it was rejected or approved
+    product.status = ProductStatus.PENDING
+    product.audit_remark = None # Clear old remark
+    
+    db.commit()
+    db.refresh(product)
     return product
 
 @router.put("/{product_id}/status", response_model=schemas.Product)
