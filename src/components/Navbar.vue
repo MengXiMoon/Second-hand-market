@@ -10,6 +10,7 @@
         <!-- Admin Context Links -->
         <template v-if="activeRole === 'admin'">
           <el-button type="text" @click="$router.push('/admin/all-products')">全部商品</el-button>
+          <el-button type="text" @click="$router.push('/chat?role=admin')">消息</el-button>
           <el-button type="text" @click="$router.push('/admin/all-users')">全部用户</el-button>
           <el-button type="text" @click="$router.push('/admin/users')">用户审核</el-button>
           <el-button type="text" @click="$router.push('/admin/products')">商品审核</el-button>
@@ -19,6 +20,7 @@
         <!-- Merchant Context Links -->
         <template v-else-if="activeRole === 'merchant'">
           <el-button type="text" @click="$router.push('/merchant/products')">商品列表</el-button>
+          <el-button type="text" @click="$router.push('/chat?role=merchant')">消息</el-button>
           <el-button type="text" @click="$router.push('/merchant/my-products')">我的商品</el-button>
           <el-button type="text" @click="$router.push('/merchant/sales')">销售记录</el-button>
           <el-button type="text" @click="$router.push('/merchant/wallet')">钱包</el-button>
@@ -27,7 +29,9 @@
         <!-- User/Public Context Links -->
         <template v-else>
           <el-button type="text" @click="$router.push('/products')">商品列表</el-button>
+          <el-button v-if="!userSession.token" type="text" @click="$router.push('/merchant/login')" style="color: #e6a23c">商家入驻</el-button>
           <template v-if="userSession.token">
+            <el-button type="text" @click="$router.push('/chat?role=user')">消息</el-button>
             <el-button type="text" @click="$router.push('/orders')">我的订单</el-button>
             <el-button type="text" @click="$router.push('/wallet')">钱包</el-button>
           </template>
@@ -42,7 +46,7 @@
           <el-button :type="getLogoutButtonType()" size="small" @click="handleLogout">退出当前端</el-button>
         </template>
         <template v-else>
-          <el-button @click="$router.push('/login')">登录</el-button>
+          <el-button @click="handleLoginClick">登录</el-button>
           <el-button type="primary" @click="$router.push('/register')">注册</el-button>
         </template>
       </div>
@@ -84,6 +88,12 @@ const handleLogoClick = () => {
   if (activeRole.value === 'admin') router.push('/admin/all-users')
   else if (activeRole.value === 'merchant') router.push('/merchant')
   else router.push('/')
+}
+
+const handleLoginClick = () => {
+  if (activeRole.value === 'admin') router.push('/admin/login')
+  else if (activeRole.value === 'merchant') router.push('/merchant/login')
+  else router.push('/login')
 }
 
 const getLogoutButtonType = () => {

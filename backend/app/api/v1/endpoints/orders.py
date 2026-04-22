@@ -26,6 +26,10 @@ def create_order(
     if product.stock < 1:
         raise HTTPException(status_code=400, detail="Product is out of stock")
     
+    # NEW: Prevent self-purchase to avoid logical confusion
+    if product.merchant_id == current_user.id:
+        raise HTTPException(status_code=400, detail="不能购买自己发布的商品")
+    
     # Check balance
     wallet = db.query(Wallet).filter(Wallet.user_id == current_user.id).first()
     if not wallet or wallet.balance < product.price:
@@ -87,6 +91,42 @@ def create_order(
     db.commit()
     db.refresh(order)
 
+    # Automated Chat Message when order is placed
+    from app.models.models import Conversation, ChatMessage, MessageType, get_beijing_time
+    from sqlalchemy import or_, and_
+    from datetime import datetime
+
+    # Find or Create Conversation
+    conv = db.query(Conversation).filter(
+        or_(
+            and_(Conversation.participant_one_id == current_user.id, Conversation.participant_two_id == product.merchant_id),
+            and_(Conversation.participant_one_id == product.merchant_id, Conversation.participant_two_id == current_user.id)
+        )
+    ).first()
+
+    if not conv:
+        conv = Conversation(
+            participant_one_id=current_user.id,
+            participant_two_id=product.merchant_id
+        )
+        db.add(conv)
+        db.commit()
+        db.refresh(conv)
+    
+    # Create the automated message
+    now = get_beijing_time()
+    chat_msg = ChatMessage(
+        conversation_id=conv.id,
+        sender_id=current_user.id,
+        content=f"我已下单商品：{product.name} (订单号: {order.id})",
+        msg_type=MessageType.TEXT,
+        timestamp=now
+    )
+    db.add(chat_msg)
+    conv.updated_at = now
+    db.commit()
+    db.refresh(chat_msg)
+
     # Real-time Notification    # Notify Merchant about new order
     from app.core.websocket_manager import manager
     notification_payload = {
@@ -95,6 +135,22 @@ def create_order(
         "data": {"order_id": order.id, "product_name": product.name}
     }
     background_tasks.add_task(manager.send_personal_message, notification_payload, product.merchant_id)
+
+    # Notify Chat Participants via WebSocket
+    chat_payload = {
+        "type": "chat_message",
+        "data": {
+            "id": chat_msg.id,
+            "conversation_id": conv.id,
+            "sender_id": current_user.id,
+            "sender_name": current_user.username,
+            "content": chat_msg.content,
+            "msg_type": "text",
+            "timestamp": chat_msg.timestamp.isoformat()
+        }
+    }
+    background_tasks.add_task(manager.send_personal_message, chat_payload, current_user.id)
+    background_tasks.add_task(manager.send_personal_message, chat_payload, product.merchant_id)
 
     # Notify Admin about site-wide order
     admin_notification = {

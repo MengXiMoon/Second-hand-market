@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import store from '../store'
 
 const routes = [
   {
@@ -38,7 +39,19 @@ const routes = [
     component: () => import('../views/Wallet.vue'),
     meta: { requiresAuth: true }
   },
-  // Merchant Routes (Strictly prefixed)
+  {
+    path: '/chat',
+    name: 'Chat',
+    component: () => import('../views/Chat.vue'),
+    meta: { requiresAuth: true }
+  },
+  // Merchant Routes
+  {
+    path: '/merchant/login',
+    name: 'MerchantLogin',
+    component: () => import('../views/Login.vue'),
+    meta: { requiresAuth: false, guestOnly: true }
+  },
   {
     path: '/merchant',
     name: 'MerchantHome',
@@ -69,7 +82,13 @@ const routes = [
     component: () => import('../views/Wallet.vue'),
     meta: { requiresAuth: true, requiresMerchant: true }
   },
-  // Admin Routes (Strictly prefixed)
+  // Admin Routes
+  {
+    path: '/admin/login',
+    name: 'AdminLogin',
+    component: () => import('../views/Login.vue'),
+    meta: { requiresAuth: false, guestOnly: true }
+  },
   {
     path: '/admin/users',
     name: 'AdminUsers',
@@ -109,11 +128,24 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const path = to.path
+  
+  const queryRole = to.query.role
   let role = 'user'
-  if (path.startsWith('/admin')) {
+
+  if (queryRole && ['user', 'merchant', 'admin'].includes(queryRole)) {
+    role = queryRole
+    localStorage.setItem('last_active_role', role)
+  } else if (path.startsWith('/admin')) {
     role = 'admin'
+    localStorage.setItem('last_active_role', 'admin')
   } else if (path.startsWith('/merchant')) {
     role = 'merchant'
+    localStorage.setItem('last_active_role', 'merchant')
+  } else if (path === '/' || path === '/products' || path === '/orders' || path === '/wallet') {
+    role = 'user'
+    localStorage.setItem('last_active_role', 'user')
+  } else {
+    role = localStorage.getItem('last_active_role') || 'user'
   }
 
   const token = localStorage.getItem(`${role}_token`)
@@ -121,13 +153,19 @@ router.beforeEach((to, from, next) => {
 
   if (to.meta.requiresAuth && !token) {
     ElMessage.warning('请先登录')
-    next('/login')
+    if (path.startsWith('/admin')) {
+      next('/admin/login')
+    } else if (path.startsWith('/merchant')) {
+      next('/merchant/login')
+    } else {
+      next('/login')
+    }
   } else if (to.meta.requiresAdmin && user.role !== 'admin') {
     ElMessage.error('权限不足')
-    next('/')
+    next('/admin/login')
   } else if (to.meta.requiresMerchant && user.role !== 'merchant' && user.role !== 'admin') {
     ElMessage.error('权限不足')
-    next('/')
+    next('/merchant/login')
   } else {
     next()
   }

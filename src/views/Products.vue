@@ -35,14 +35,25 @@
                   <span class="price">¥{{ product.price }}</span>
                   <span class="stock">库存: {{ product.stock }}</span>
                 </div>
-                <el-button 
-                  type="primary" 
-                  style="width: 100%; margin-top: 12px"
-                  @click="handleBuy(product)"
-                  :disabled="!user || product.stock < 1"
-                >
-                  {{ !user ? '请先登录' : product.stock < 1 ? '已售罄' : '立即购买' }}
-                </el-button>
+                <div class="product-actions" style="display: flex; gap: 8px; margin-top: 12px">
+                  <el-button 
+                    type="primary" 
+                    style="flex: 1"
+                    @click="handleBuy(product)"
+                    :disabled="!user || product.stock < 1"
+                  >
+                    {{ !user ? '请先登录' : product.stock < 1 ? '已售罄' : '立即购买' }}
+                  </el-button>
+                  <el-button 
+                    v-if="user && user.id !== product.merchant_id"
+                    type="success"
+                    plain
+                    style="flex: 1"
+                    @click="handleContact(product)"
+                  >
+                    联系卖家
+                  </el-button>
+                </div>
               </div>
             </el-card>
           </el-col>
@@ -56,12 +67,15 @@
 
 <script setup>
 import { ref, onMounted, computed, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getProducts } from '../api/products'
 import { createOrder } from '../api/orders'
 import store from '../store'
 import Layout from '../components/Layout.vue'
 import { getProductStatusText, getProductStatusType } from '../utils/status'
+
+const router = useRouter()
 
 const loading = ref(false)
 const products = ref([])
@@ -87,6 +101,13 @@ const loadProducts = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const handleContact = (product) => {
+  router.push({
+    path: '/chat',
+    query: { target_id: product.merchant_id }
+  })
 }
 
 const handleBuy = async (product) => {

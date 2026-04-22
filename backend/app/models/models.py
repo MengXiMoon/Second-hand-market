@@ -97,3 +97,34 @@ class Transaction(Base):
     created_at = Column(DateTime, default=get_beijing_time)
 
     wallet = relationship("Wallet", back_populates="transactions")
+
+# New Chat Models
+class MessageType(str, enum.Enum):
+    TEXT = "text"
+    IMAGE = "image"
+    SYSTEM = "system"
+
+class Conversation(Base):
+    __tablename__ = "conversations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    participant_one_id = Column(Integer, ForeignKey("users.id"))
+    participant_two_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=get_beijing_time)
+    updated_at = Column(DateTime, default=get_beijing_time, onupdate=get_beijing_time)
+
+    messages = relationship("ChatMessage", back_populates="conversation", cascade="all, delete-orphan")
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(Integer, ForeignKey("conversations.id"))
+    sender_id = Column(Integer, ForeignKey("users.id"))
+    content = Column(String) # Text content or image URL
+    msg_type = Column(Enum(MessageType), default=MessageType.TEXT)
+    is_read = Column(Boolean, default=False)
+    timestamp = Column(DateTime, default=get_beijing_time)
+
+    conversation = relationship("Conversation", back_populates="messages")
+    sender = relationship("User", foreign_keys=[sender_id])

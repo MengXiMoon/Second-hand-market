@@ -11,61 +11,69 @@ const connectWebSocket = (uid) => {
   if (sockets[uid]) return 
   
   const ws = new WebSocket(`ws://localhost:8000/v1/ws/${uid}`)
+  sockets[uid] = ws
   
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data)
-    if (data.type) {
-      /**
-       * 严格隔离逻辑：仅当通知类型与当前页面所属的角色端一致时，才显示弹窗。
-       * 比如：用户在买东西（user端）时，不会被商家的订单消息通知打扰，实现纯净的多端分离体验。
-       */
-      const roleMap = {
-        'new_order': 'merchant',   // 新订单属于商家端
-        'product_audit': 'merchant', // 商品审核属于商家端
-        'admin_event': 'admin'      // 管理事件属于管理端
-      }
+    const roleMap = {
+      'new_order': 'merchant',
+      'product_audit': 'merchant',
+      'admin_event': 'admin',
+      'chat_message': 'any',
+      'typing': 'any'
+    }
+    
+    const eventType = data.type
+    const targetRole = roleMap[eventType]
+    const currentRole = store.getActiveRole()
+    
+    // Dispatch specific chat events
+    if (['chat_message', 'typing'].includes(eventType)) {
+      window.dispatchEvent(new CustomEvent(`chat-${eventType.replace('_', '-')}`, { detail: data.data }))
       
-      const targetRole = roleMap[data.type]
-      const currentRole = store.getActiveRole()
-      
-      // 只有在匹配的角色端页面，才弹出 UI 提醒
-      if (targetRole && currentRole === targetRole) {
-        const typeMap = {
-          'new_order': { title: '新订单通知', type: 'success' },
-          'product_audit': { title: '商品审核通知', type: data.data.status === 'approved' ? 'success' : 'warning' },
-          'admin_event': { title: '管理提醒', type: 'info' }
-        }
-        const config = typeMap[data.type] || { title: '通知', type: 'info' }
-        
+      if (eventType === 'chat_message' && window.location.pathname !== '/chat') {
         ElNotification({
-          title: config.title,
-          message: data.message,
-          type: config.type,
-          duration: 4500, // 自动消失，避免堆积
-          position: 'bottom-right'
+          title: '新消息',
+          message: data.data.content.length > 20 ? data.data.content.substring(0, 20) + '...' : data.data.content,
+          type: 'info',
+          position: 'bottom-right',
+          onClick: () => { window.location.href = '/chat' }
         })
       }
-      
-      // 增加 300ms 延迟，确保后端数据库写入完全完成后再刷新前端数据
-      // 解决管理员端看到通知但列表没刷新的“竞态”问题
-      clearTimeout(refreshTimer)
-      refreshTimer = setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('refresh-data'))
-      }, 300)
+      return
     }
+
+    if (targetRole && (targetRole === 'any' || currentRole === targetRole)) {
+      const typeMap = {
+        'new_order': { title: '新订单通知', type: 'success' },
+        'product_audit': { title: '商品审核通知', type: data.data.status === 'approved' ? 'success' : 'warning' },
+        'admin_event': { title: '管理提醒', type: 'info' }
+      }
+      const config = typeMap[data.type] || { title: '通知', type: 'info' }
+      
+      ElNotification({
+        title: config.title,
+        message: data.message,
+        type: config.type,
+        duration: 4500,
+        position: 'bottom-right'
+      })
+    }
+    
+    clearTimeout(refreshTimer)
+    refreshTimer = setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('refresh-data'))
+    }, 300)
   }
 
   ws.onclose = () => {
     if (sockets[uid] === ws) {
       delete sockets[uid]
     }
-    // Reconnect after 5 seconds if anyone still needs this UID
     setTimeout(() => {
       checkAndReconnect(uid)
     }, 5000)
   }
-
-  sockets[uid] = ws
 }
 
 const checkAndReconnect = (uid) => {
@@ -94,7 +102,6 @@ const updateConnections = () => {
     }
   })
 
-  // Close sockets for users that are no longer logged in any role
   Object.keys(sockets).forEach(uidStr => {
     const uid = Number(uidStr)
     if (!activeUserIds.has(uid)) {
@@ -108,7 +115,16 @@ const updateConnections = () => {
 
 onMounted(() => {
   updateConnections()
-  // Watch all role slots for changes in login state
+  
+  window.sendChatAction = (uid, action) => {
+    const ws = sockets[uid]
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(action))
+      return true
+    }
+    return false
+  }
+
   watch(() => [store.state.user.token, store.state.merchant.token, store.state.admin.token], () => {
     updateConnections()
   })

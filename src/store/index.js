@@ -14,10 +14,33 @@ const state = reactive({
 })
 
 const getActiveRole = () => {
+  // 1. Check URL query params first (e.g. /chat?role=merchant)
+  const params = new URLSearchParams(window.location.search)
+  const roleParam = params.get('role')
+  if (roleParam && ['user', 'merchant', 'admin'].includes(roleParam)) {
+    return roleParam
+  }
+
+  // 2. Check URL prefix & Specific Login Paths
   const path = window.location.pathname
   if (path.startsWith('/admin')) return 'admin'
   if (path.startsWith('/merchant')) return 'merchant'
-  return 'user'
+  
+  // Explicitly force 'user' role for common buyer-facing paths to prevent token leakage from other roles
+  if (path === '/' || path === '/products' || path === '/orders' || path === '/wallet' || path === '/chat') {
+    // Note: /chat handles its own role via query param usually, but default should be user if no param
+    const params = new URLSearchParams(window.location.search)
+    if (!params.get('role')) return 'user'
+  }
+  
+  // 3. Fallback to localStorage context saved by router
+  return localStorage.getItem('last_active_role') || 'user'
+}
+
+const setContextRole = (role) => {
+  if (['user', 'merchant', 'admin'].includes(role)) {
+    localStorage.setItem('last_active_role', role)
+  }
 }
 
 const setUser = (userInfo, token) => {
@@ -35,6 +58,11 @@ const logout = (role) => {
     state[r].token = null
     localStorage.removeItem(`${r}_info`)
     localStorage.removeItem(`${r}_token`)
+    
+    // If the logged-out role was the active context, reset to user
+    if (localStorage.getItem('last_active_role') === r) {
+      localStorage.setItem('last_active_role', 'user')
+    }
   }
 }
 
@@ -53,5 +81,6 @@ export default {
   logout,
   getAuthToken,
   getCurrentSession,
-  getActiveRole
+  getActiveRole,
+  setContextRole
 }

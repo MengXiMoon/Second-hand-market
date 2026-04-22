@@ -22,11 +22,35 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   response => response,
   error => {
-    if (error.response?.status === 401) {
-      store.logout('user')
-      store.logout('merchant')
-      store.logout('admin')
-      window.location.href = '/login'
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      const isForbidden = error.response.status === 403
+      const failedToken = error.config.headers.Authorization?.replace('Bearer ', '')
+      
+      // Determine which role context this failed token belongs to
+      let roleToLogout = null
+      if (failedToken) {
+        if (failedToken === localStorage.getItem('user_token')) roleToLogout = 'user'
+        else if (failedToken === localStorage.getItem('merchant_token')) roleToLogout = 'merchant'
+        else if (failedToken === localStorage.getItem('admin_token')) roleToLogout = 'admin'
+      }
+
+      if (roleToLogout) {
+        store.logout(roleToLogout)
+        if (isForbidden) {
+          ElMessage.error(`权限不足：当前账号没有${roleToLogout === 'merchant' ? '商家' : (roleToLogout === 'admin' ? '管理' : '相关')}访问权限`)
+        }
+        
+        // Only redirect if the current role being viewed is the one that just logged out
+        const currentRole = store.getActiveRole()
+        if (currentRole === roleToLogout) {
+           window.location.href = '/login'
+        }
+      } else {
+        // Fallback for unidentified role
+        const contextRole = store.getActiveRole()
+        store.logout(contextRole)
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }

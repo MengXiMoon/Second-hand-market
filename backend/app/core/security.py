@@ -2,14 +2,13 @@ import bcrypt
 from datetime import datetime, timedelta
 from typing import Optional, Any
 from jose import jwt
+from jose import jwt
 import os
-from dotenv import load_dotenv
+from app.core.config import settings
 
-load_dotenv()
-
-DESC = os.getenv("SECRET_KEY", "replace_me_with_something_secure")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
+DESC = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain text password against its hashed version using bcrypt."""

@@ -46,8 +46,6 @@ const loadProducts = async () => {
   }
 }
 
-import { onUnmounted } from 'vue'
-
 onMounted(() => {
   loadProducts()
   window.addEventListener('refresh-data', loadProducts)

@@ -10,11 +10,10 @@ from app.db.session import get_db
 from app.models.models import User, UserRole
 from app.schemas.schemas import TokenData
 from app.core import security
+from app.core.config import settings
 
-load_dotenv()
-
-SECRET_KEY = os.getenv("SECRET_KEY", "replace_me_with_something_secure")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
 
 reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl="v1/login/access-token"

@@ -33,6 +33,10 @@
             <el-icon :size="40" color="#e6a23c"><User /></el-icon>
             <h3>多重角色</h3>
             <p>买家、卖家、管理员一应俱全</p>
+            <div v-if="!anyLoggedIn" class="role-entry">
+              <el-button type="warning" plain size="small" @click="$router.push('/merchant/login')">商家入口</el-button>
+              <el-button type="danger" plain size="small" @click="$router.push('/admin/login')">后台管理</el-button>
+            </div>
           </el-card>
         </el-col>
       </el-row>
@@ -41,7 +45,13 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import Layout from '../components/Layout.vue'
+import store from '../store'
+
+const anyLoggedIn = computed(() => {
+  return !!(store.state.user.token || store.state.merchant.token || store.state.admin.token)
+})
 </script>
 
 <style scoped>
@@ -81,5 +91,12 @@ import Layout from '../components/Layout.vue'
 
 .feature-card p {
   color: #909399;
+  margin-bottom: 20px;
+}
+
+.role-entry {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
 }
 </style>
