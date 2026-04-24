@@ -5,7 +5,8 @@
         <template #header>
           <h2>{{ title }}</h2>
         </template>
-        <el-form :model="form" :rules="rules" ref="formRef" label-width="80px">
+        
+        <el-form :model="form" :rules="rules" ref="formRef" label-width="80px" class="login-form">
           <el-form-item label="用户名" prop="username">
             <el-input v-model="form.username" placeholder="请输入用户名" />
           </el-form-item>
@@ -17,7 +18,7 @@
               登录
             </el-button>
           </el-form-item>
-          <el-form-item>
+          <el-form-item class="register-link">
             <span>还没有账号？</span>
             <el-link type="primary" @click="$router.push('/register')">立即注册</el-link>
           </el-form-item>
@@ -28,14 +29,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { login, getCurrentUser } from '../api/auth'
 import store from '../store'
 import Layout from '../components/Layout.vue'
-
-
 
 const router = useRouter()
 const formRef = ref(null)
@@ -49,11 +48,12 @@ const getRoleContext = () => {
   return 'user'
 }
 
-const targetRole = getRoleContext()
+const targetRole = computed(() => getRoleContext())
+
 const title = computed(() => {
-  if (targetRole === 'admin') return '管理员登录'
-  if (targetRole === 'merchant') return '商家登录'
-  return '登录'
+  if (targetRole.value === 'admin') return '管理员登录'
+  if (targetRole.value === 'merchant') return '商家登录'
+  return '顾客登录'
 })
 
 const form = reactive({
@@ -79,16 +79,16 @@ const handleLogin = async () => {
         const { data: user } = await getCurrentUser(tokenData.access_token)
         
         // Role Access Control for login page
-        if (targetRole === 'admin' && user.role !== 'admin') {
+        if (targetRole.value === 'admin' && user.role !== 'admin') {
           throw { response: { data: { detail: '此账号没有管理员权限' } } }
         }
-        if (targetRole === 'merchant' && user.role !== 'merchant' && user.role !== 'admin') {
+        if (targetRole.value === 'merchant' && user.role !== 'merchant' && user.role !== 'admin') {
           throw { response: { data: { detail: '此账号没有商家权限' } } }
         }
 
         // Set session for the specific intended role
         store.setUser(user, tokenData.access_token)
-        store.setContextRole(targetRole)
+        store.setContextRole(targetRole.value)
         
         ElMessage.success({
           message: '登录成功',
@@ -97,9 +97,9 @@ const handleLogin = async () => {
         })
         
         setTimeout(() => {
-          if (targetRole === 'admin') {
+          if (targetRole.value === 'admin') {
             router.push('/admin/all-users')
-          } else if (targetRole === 'merchant') {
+          } else if (targetRole.value === 'merchant') {
             router.push('/merchant/my-products')
           } else {
             router.push('/')
@@ -129,5 +129,14 @@ const handleLogin = async () => {
 .login-card h2 {
   margin: 0;
   text-align: center;
+}
+
+.login-form {
+  padding-top: 16px;
+}
+
+.register-link {
+  text-align: center;
+  margin-bottom: 0;
 }
 </style>

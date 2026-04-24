@@ -29,7 +29,7 @@
         <!-- User/Public Context Links -->
         <template v-else>
           <el-button type="text" @click="$router.push('/products')">商品列表</el-button>
-          <el-button v-if="!userSession.token" type="text" @click="$router.push('/merchant/login')" style="color: #e6a23c">商家入驻</el-button>
+          <el-button type="text" @click="$router.push('/merchant/login')" style="color: #e6a23c">商家入驻</el-button>
           <template v-if="userSession.token">
             <el-button type="text" @click="$router.push('/chat?role=user')">消息</el-button>
             <el-button type="text" @click="$router.push('/orders')">我的订单</el-button>
@@ -46,21 +46,41 @@
           <el-button :type="getLogoutButtonType()" size="small" @click="handleLogout">退出当前端</el-button>
         </template>
         <template v-else>
-          <el-button @click="handleLoginClick">登录</el-button>
+          <el-button @click="showLoginDialog = true">登录</el-button>
           <el-button type="primary" @click="$router.push('/register')">注册</el-button>
         </template>
       </div>
     </div>
+    
+    <!-- 登录角色选择对话框 -->
+    <el-dialog v-model="showLoginDialog" title="选择登录入口" width="400px" center>
+      <div class="login-options">
+        <el-button type="primary" size="large" class="login-option-btn" @click="goToLogin('user')">
+          <el-icon class="btn-icon"><User /></el-icon>
+          顾客登录
+        </el-button>
+        <el-button type="warning" size="large" class="login-option-btn" @click="goToLogin('merchant')">
+          <el-icon class="btn-icon"><Shop /></el-icon>
+          商家登录
+        </el-button>
+        <el-button type="danger" size="large" class="login-option-btn" @click="goToLogin('admin')">
+          <el-icon class="btn-icon"><Setting /></el-icon>
+          管理员登录
+        </el-button>
+      </div>
+    </el-dialog>
   </el-header>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { User, Shop, Setting } from '@element-plus/icons-vue'
 import store from '../store'
 
 const router = useRouter()
+const showLoginDialog = ref(false)
 
 // Get session status for ALL roles
 const userSession = computed(() => store.state.user)
@@ -90,10 +110,15 @@ const handleLogoClick = () => {
   else router.push('/')
 }
 
-const handleLoginClick = () => {
-  if (activeRole.value === 'admin') router.push('/admin/login')
-  else if (activeRole.value === 'merchant') router.push('/merchant/login')
-  else router.push('/login')
+const goToLogin = (role) => {
+  showLoginDialog.value = false
+  if (role === 'admin') {
+    router.push('/admin/login')
+  } else if (role === 'merchant') {
+    router.push('/merchant/login')
+  } else {
+    router.push('/login')
+  }
 }
 
 const getLogoutButtonType = () => {
@@ -199,5 +224,26 @@ const handleLogout = () => {
 
 .user-info {
   font-size: 14px;
+}
+
+.login-options {
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-option-btn {
+  width: 100% !important;
+  height: 44px !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.login-option-btn .el-icon {
+  margin-right: 6px !important;
+  font-size: 18px !important;
 }
 </style>

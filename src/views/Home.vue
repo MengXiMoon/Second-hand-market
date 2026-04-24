@@ -33,7 +33,8 @@
             <el-icon :size="40" color="#e6a23c"><User /></el-icon>
             <h3>多重角色</h3>
             <p>买家、卖家、管理员一应俱全</p>
-            <div v-if="!anyLoggedIn" class="role-entry">
+            <div class="role-entry">
+              <el-button type="primary" plain size="small" @click="$router.push('/login')">顾客入口</el-button>
               <el-button type="warning" plain size="small" @click="$router.push('/merchant/login')">商家入口</el-button>
               <el-button type="danger" plain size="small" @click="$router.push('/admin/login')">后台管理</el-button>
             </div>
