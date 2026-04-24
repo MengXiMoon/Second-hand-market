@@ -6,7 +6,12 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+*.pid
+*.seed
+*.out
+*.err
 
+# Node / Frontend
 node_modules
 dist
 dist-ssr
@@ -22,3 +27,34 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python cache / build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+venv/
+.venv/
+backend/venv/
+backend/.venv/
+
+# Environment files
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Python local databases / runtime files
+*.db
+*.sqlite
+*.sqlite3
+backend/sql_app.db
