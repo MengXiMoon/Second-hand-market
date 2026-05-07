@@ -18,16 +18,24 @@ if (!(Test-Path ".\venv")) {
 
 # 3. Activate and Install Dependencies
 Write-Host "[2/4] Activating environment and checking dependencies..." -ForegroundColor Green
-if ($IsWindows) {
+if (Test-Path ".\venv\Scripts\Activate.ps1") {
     . .\venv\Scripts\Activate.ps1
-} else {
+} elseif (Test-Path "./venv/bin/activate") {
     . ./venv/bin/activate
+} else {
+    Write-Host "Error: Cannot find virtual environment activation script." -ForegroundColor Red
+    exit 1
 }
 
 # Check if we need to install/update requirements
-# We'll always try to install to ensure everything is there on a new machine
-pip install --upgrade pip
-pip install -r requirements.txt
+# Only install if requirements.txt is newer than venv or on first run
+$requirementsFile = Get-Item "requirements.txt"
+$venvScripts = Get-Item ".\venv\Scripts\python.exe"
+if ($requirementsFile.LastWriteTime -gt $venvScripts.LastWriteTime) {
+    Write-Host "Installing/updating dependencies..." -ForegroundColor Green
+    pip install --upgrade pip -q
+    pip install -r requirements.txt -q
+}
 
 # 4. Check for .env file
 if (!(Test-Path ".env")) {
