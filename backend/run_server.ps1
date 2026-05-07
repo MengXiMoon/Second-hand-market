@@ -18,7 +18,7 @@ if (!(Test-Path ".\venv")) {
 
 # 3. Activate and Install Dependencies
 Write-Host "[2/4] Activating environment and checking dependencies..." -ForegroundColor Green
-if ($IsWindows) {
+if (Test-Path ".\venv\Scripts\Activate.ps1") {
     . .\venv\Scripts\Activate.ps1
 } else {
     . ./venv/bin/activate

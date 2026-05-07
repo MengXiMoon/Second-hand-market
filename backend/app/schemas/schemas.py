@@ -32,7 +32,7 @@ class User(UserBase):
 
 # Wallet & Transaction schemas
 class TransactionBase(BaseModel):
-    amount: float
+    amount: int  # Amount in cents
     type: TransactionType
     description: str
 
@@ -44,7 +44,7 @@ class Transaction(TransactionBase):
         from_attributes = True
 
 class Wallet(BaseModel):
-    balance: float
+    balance: int  # Balance in cents
     transactions: List[Transaction] = []
 
     class Config:
@@ -54,7 +54,7 @@ class Wallet(BaseModel):
 class ProductBase(BaseModel):
     name: str
     description: str
-    price: float
+    price: int  # Price in cents (e.g., 10000 = 100.00 yuan)
     stock: int = 1
 
 class ProductCreate(ProductBase):
@@ -80,7 +80,7 @@ class OrderCreate(OrderBase):
 class Order(OrderBase):
     id: int
     buyer_id: int
-    total_price: float
+    total_price: int  # Price in cents
     status: OrderStatus
     created_at: datetime
 

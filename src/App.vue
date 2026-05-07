@@ -7,10 +7,11 @@ import store from './store'
 const sockets = {}
 let refreshTimer = null
 
-const connectWebSocket = (uid) => {
-  if (sockets[uid]) return 
-  
-  const ws = new WebSocket(`ws://localhost:8000/v1/ws/${uid}`)
+const connectWebSocket = (uid, token) => {
+  if (sockets[uid]) return
+
+  const wsBase = import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8000/v1'
+  const ws = new WebSocket(`${wsBase}/ws/${uid}?token=${encodeURIComponent(token)}`)
   sockets[uid] = ws
   
   ws.onmessage = (event) => {
@@ -83,7 +84,13 @@ const checkAndReconnect = (uid) => {
     return session?.token && session?.user && session.user.id === uid
   })
   if (stillLoggedIn && !sockets[uid]) {
-    connectWebSocket(uid)
+    const session = store.state[roles.find(r => {
+      const s = store.state[r]
+      return s?.token && s?.user?.id === uid
+    })]
+    if (session?.token) {
+      connectWebSocket(uid, session.token)
+    }
   }
 }
 
@@ -97,7 +104,7 @@ const updateConnections = () => {
       const uid = session.user.id
       activeUserIds.add(uid)
       if (!sockets[uid]) {
-        connectWebSocket(uid)
+        connectWebSocket(uid, session.token)
       }
     }
   })

@@ -9,7 +9,7 @@
           <el-table-column prop="name" label="商品名称" min-width="200" />
           <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
           <el-table-column prop="price" label="价格" min-width="100">
-            <template #default="{ row }">¥{{ row.price }}</template>
+            <template #default="{ row }">¥{{ formatMoney(row.price) }}</template>
           </el-table-column>
           <el-table-column prop="stock" label="库存" width="80" />
           <el-table-column prop="merchant_id" label="商家ID" min-width="100" />
@@ -32,7 +32,7 @@
                 <h3>{{ product.name }}</h3>
                 <p class="description">{{ product.description }}</p>
                 <div class="product-footer">
-                  <span class="price">¥{{ product.price }}</span>
+                  <span class="price">¥{{ formatMoney(product.price) }}</span>
                   <span class="stock">库存: {{ product.stock }}</span>
                 </div>
                 <div class="product-actions" style="display: flex; gap: 8px; margin-top: 12px">
@@ -74,6 +74,7 @@ import { createOrder } from '../api/orders'
 import store from '../store'
 import Layout from '../components/Layout.vue'
 import { getProductStatusText, getProductStatusType } from '../utils/status'
+import { formatMoney } from '../utils/format'
 
 const router = useRouter()
 
@@ -113,7 +114,7 @@ const handleContact = (product) => {
 const handleBuy = async (product) => {
   try {
     await ElMessageBox.confirm(
-      `确定要购买「${product.name}」吗？价格：¥${product.price}`,
+      `确定要购买「${product.name}」吗？价格：¥${formatMoney(product.price)}`,
       '确认购买',
       { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
     )

@@ -6,6 +6,7 @@ from app.api import deps
 from app.models.models import Product, ProductStatus, User, UserRole
 from app.schemas import schemas
 from app.db.session import get_db
+from app.core.websocket_manager import manager
 
 router = APIRouter()
 
@@ -37,7 +38,6 @@ def create_product(
     db.refresh(product)
 
     # Notify Admin about new product audit request
-    from app.core.websocket_manager import manager
     notification_payload = {
         "type": "admin_event",
         "message": f"管理提醒：商家 [{current_user.username}] 发布了新商品 [{product.name}]，等待审核。",
@@ -84,7 +84,6 @@ def audit_product(
     db.refresh(product)
 
     # Real-time Notification for Merchant
-    from app.core.websocket_manager import manager
     notification_payload = {
         "type": "product_audit",
         "message": f"商品审核通知：您的商品 [{product.name}] 已被管理员{status_label}。{f'理由：{remark}' if remark else ''}",

@@ -1,8 +1,9 @@
 import axios from 'axios'
+import { ElMessage } from 'element-plus'
 import store from '../store'
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000/v1',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/v1',
   timeout: 10000
 })
 
