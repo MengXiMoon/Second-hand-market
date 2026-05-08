@@ -2,7 +2,6 @@ import bcrypt
 from datetime import datetime, timedelta
 from typing import Optional, Any
 from jose import jwt
-from jose import jwt
 import os
 from app.core.config import settings
 

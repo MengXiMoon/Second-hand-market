@@ -8,7 +8,7 @@
         <el-table-column prop="name" label="商品名称" min-width="200" />
         <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
         <el-table-column prop="price" label="价格" min-width="100">
-          <template #default="{ row }">¥{{ row.price }}</template>
+          <template #default="{ row }">¥{{ formatMoney(row.price) }}</template>
         </el-table-column>
         <el-table-column prop="merchant_id" label="商家ID" min-width="100" />
         <el-table-column prop="status" label="状态" min-width="120">
@@ -51,6 +51,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getPendingProducts, auditProduct } from '../../api/products'
 import Layout from '../../components/Layout.vue'
+import { formatMoney } from '../../utils/format'
 
 const loading = ref(false)
 const auditLoading = ref(null) // Stores current auditing product ID

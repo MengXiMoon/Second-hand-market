@@ -8,7 +8,7 @@
         <el-table-column prop="buyer_id" label="买家ID" width="100" />
         <el-table-column prop="product_id" label="商品ID" width="100" />
         <el-table-column prop="total_price" label="金额" min-width="120">
-          <template #default="{ row }">¥{{ row.total_price }}</template>
+          <template #default="{ row }">¥{{ formatMoney(row.total_price) }}</template>
         </el-table-column>
         <el-table-column prop="status" label="状态" min-width="120">
           <template #default="{ row }">
@@ -32,7 +32,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getAllOrders } from '../../api/orders'
 import Layout from '../../components/Layout.vue'
-import { formatDateTime } from '../../utils/format'
+import { formatDateTime, formatMoney } from '../../utils/format'
 import { getOrderStatusText, getOrderStatusType } from '../../utils/status'
 
 const loading = ref(false)

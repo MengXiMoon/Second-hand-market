@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api import deps
-from app.models.models import User, UserRole
+from app.models.models import User, UserRole, Transaction, Wallet, Order, Product
 from app.schemas import schemas
 from app.db.session import get_db
 
@@ -65,21 +65,10 @@ def delete_user(
     if user.id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot delete yourself")
     
-    # 删除用户相关的数据（商品、订单、钱包等）
-    # 先删除交易记录
-    from app.models.models import Transaction
+    # Delete user-related data (products, orders, wallet, transactions)
     db.query(Transaction).filter(Transaction.wallet_id == user_id).delete()
-    
-    # 删除钱包
-    from app.models.models import Wallet
     db.query(Wallet).filter(Wallet.user_id == user_id).delete()
-    
-    # 删除订单
-    from app.models.models import Order
     db.query(Order).filter(Order.buyer_id == user_id).delete()
-    
-    # 删除商品
-    from app.models.models import Product
     db.query(Product).filter(Product.merchant_id == user_id).delete()
     
     # 最后删除用户

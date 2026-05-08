@@ -6,6 +6,7 @@ from typing import Any
 
 from app.api import deps
 from app.core import security
+from app.core.websocket_manager import manager
 from app.models.models import User, UserRole, Wallet, Transaction, TransactionType
 from app.schemas import schemas
 from app.db.session import get_db
@@ -73,12 +74,11 @@ def register_user(
     db.refresh(db_user)
     
     # Initialize wallet for every new user
-    wallet = Wallet(user_id=db_user.id, balance=0.0)
+    wallet = Wallet(user_id=db_user.id, balance=0)
     db.add(wallet)
     db.commit()
 
     # Notify Admin about new user registration
-    from app.core.websocket_manager import manager
     notification_payload = {
         "type": "admin_event",
         "message": f"管理提醒：新用户 [{db_user.username}] 注册，等待审核。",

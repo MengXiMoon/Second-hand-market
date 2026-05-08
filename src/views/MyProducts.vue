@@ -14,7 +14,7 @@
         <el-table-column prop="name" label="商品名称" min-width="200" />
         <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
         <el-table-column prop="price" label="价格" min-width="100">
-          <template #default="{ row }">¥{{ row.price }}</template>
+          <template #default="{ row }">¥{{ formatMoney(row.price) }}</template>
         </el-table-column>
         <el-table-column prop="stock" label="库存" width="80" />
         <el-table-column prop="status" label="状态" min-width="120">
@@ -73,8 +73,8 @@
               placeholder="请输入商品描述" 
             />
           </el-form-item>
-          <el-form-item label="价格" prop="price">
-            <el-input-number v-model="productForm.price" :min="0" :precision="2" style="width: 100%" />
+          <el-form-item label="价格 (元)" prop="price">
+            <el-input-number v-model="productForm.price" :min="0.01" :precision="2" style="width: 100%" />
           </el-form-item>
           <el-form-item label="库存" prop="stock">
             <el-input-number v-model="productForm.stock" :min="0" style="width: 100%" />
@@ -106,6 +106,7 @@ import { InfoFilled, Plus } from '@element-plus/icons-vue'
 import { getMyProducts, createProduct, updateProduct, updateProductStatus } from '../api/products'
 import Layout from '../components/Layout.vue'
 import { getProductStatusText, getProductStatusType } from '../utils/status'
+import { formatMoney, toCents } from '../utils/format'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -147,7 +148,7 @@ const handleEdit = (product) => {
   Object.assign(productForm, {
     name: product.name,
     description: product.description,
-    price: product.price,
+    price: product.price / 100,  // Convert cents → yuan for display
     stock: product.stock
   })
   showAddDialog.value = true
@@ -160,11 +161,15 @@ const handleSubmit = async () => {
     if (valid) {
       saving.value = true
       try {
+        const payload = {
+          ...productForm,
+          price: toCents(productForm.price)  // Convert yuan → cents for API
+        }
         if (isEdit.value) {
-          await updateProduct(currentProduct.value.id, productForm)
+          await updateProduct(currentProduct.value.id, payload)
           ElMessage.success('更新成功，已重新提交审核')
         } else {
-          await createProduct(productForm)
+          await createProduct(payload)
           ElMessage.success('商品发布成功，等待审核')
         }
         showAddDialog.value = false

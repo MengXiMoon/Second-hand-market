@@ -285,9 +285,11 @@ const formatFullTime = (dateStr) => {
   })
 }
 
+const staticBase = import.meta.env.VITE_STATIC_BASE_URL || 'http://localhost:8000'
+
 const getFullUrl = (url) => {
   if (url.startsWith('http')) return url
-  return `http://localhost:8000${url}`
+  return `${staticBase}${url}`
 }
 
 const hasUnread = (conv) => {

@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Float, DateTime, Enum
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime, Enum
 from sqlalchemy.orm import relationship
 import enum
 from datetime import datetime, timedelta
@@ -55,10 +55,10 @@ class Product(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     description = Column(String)
-    price = Column(Float)
+    price = Column(Integer)  # Price in cents (e.g., 10000 = 100.00 yuan)
     stock = Column(Integer, default=1)
     status = Column(Enum(ProductStatus), default=ProductStatus.PENDING)
-    merchant_id = Column(Integer, ForeignKey("users.id"))
+    merchant_id = Column(Integer, ForeignKey("users.id"), index=True)
     audit_remark = Column(String, nullable=True)
     created_at = Column(DateTime, default=get_beijing_time)
 
@@ -68,9 +68,9 @@ class Order(Base):
     __tablename__ = "orders"
 
     id = Column(Integer, primary_key=True, index=True)
-    buyer_id = Column(Integer, ForeignKey("users.id"))
-    product_id = Column(Integer, ForeignKey("products.id"))
-    total_price = Column(Float)
+    buyer_id = Column(Integer, ForeignKey("users.id"), index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), index=True)
+    total_price = Column(Integer)  # Price in cents
     status = Column(Enum(OrderStatus), default=OrderStatus.ORDERED)
     created_at = Column(DateTime, default=get_beijing_time)
 
@@ -81,7 +81,7 @@ class Wallet(Base):
     __tablename__ = "wallets"
 
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
-    balance = Column(Float, default=0.0)
+    balance = Column(Integer, default=0)  # Balance in cents
 
     user = relationship("User", back_populates="wallet")
     transactions = relationship("Transaction", back_populates="wallet")
@@ -90,8 +90,8 @@ class Transaction(Base):
     __tablename__ = "transactions"
 
     id = Column(Integer, primary_key=True, index=True)
-    wallet_id = Column(Integer, ForeignKey("wallets.user_id"))
-    amount = Column(Float)
+    wallet_id = Column(Integer, ForeignKey("wallets.user_id"), index=True)
+    amount = Column(Integer)  # Amount in cents (positive = credit, negative = debit)
     type = Column(Enum(TransactionType))
     description = Column(String)
     created_at = Column(DateTime, default=get_beijing_time)
@@ -108,8 +108,8 @@ class Conversation(Base):
     __tablename__ = "conversations"
 
     id = Column(Integer, primary_key=True, index=True)
-    participant_one_id = Column(Integer, ForeignKey("users.id"))
-    participant_two_id = Column(Integer, ForeignKey("users.id"))
+    participant_one_id = Column(Integer, ForeignKey("users.id"), index=True)
+    participant_two_id = Column(Integer, ForeignKey("users.id"), index=True)
     created_at = Column(DateTime, default=get_beijing_time)
     updated_at = Column(DateTime, default=get_beijing_time, onupdate=get_beijing_time)
 
@@ -119,8 +119,8 @@ class ChatMessage(Base):
     __tablename__ = "chat_messages"
 
     id = Column(Integer, primary_key=True, index=True)
-    conversation_id = Column(Integer, ForeignKey("conversations.id"))
-    sender_id = Column(Integer, ForeignKey("users.id"))
+    conversation_id = Column(Integer, ForeignKey("conversations.id"), index=True)
+    sender_id = Column(Integer, ForeignKey("users.id"), index=True)
     content = Column(String) # Text content or image URL
     msg_type = Column(Enum(MessageType), default=MessageType.TEXT)
     is_read = Column(Boolean, default=False)
