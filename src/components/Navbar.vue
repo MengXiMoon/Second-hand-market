@@ -1,16 +1,19 @@
 <template>
-  <el-header :class="['navbar', getRoleClass()]">
+  <el-header v-if="!isAuthPage" :class="['navbar', getRoleClass()]">
     <div class="navbar-content">
       <div class="logo" @click="handleLogoClick">
         <el-icon :size="24"><ShoppingCart /></el-icon>
         <span>二手市场</span>
       </div>
       <nav class="nav-links">
-        <!-- 路由路径隔离：基于当前 URL 前缀展示对应的端入口，实现视觉上的多端分离 -->
+        <!-- Root path: show neutral links -->
+        <template v-if="isRootPath">
+          <el-button type="text" @click="$router.push('/customer/products')">商品列表</el-button>
+        </template>
         <!-- Admin Context Links -->
-        <template v-if="activeRole === 'admin'">
+        <template v-else-if="activeRole === 'admin'">
           <el-button type="text" @click="$router.push('/admin/all-products')">全部商品</el-button>
-          <el-button type="text" @click="$router.push('/chat?role=admin')">消息</el-button>
+          <el-button type="text" @click="$router.push('/admin/chat')">消息</el-button>
           <el-button type="text" @click="$router.push('/admin/all-users')">全部用户</el-button>
           <el-button type="text" @click="$router.push('/admin/users')">用户审核</el-button>
           <el-button type="text" @click="$router.push('/admin/products')">商品审核</el-button>
@@ -20,7 +23,7 @@
         <!-- Merchant Context Links -->
         <template v-else-if="activeRole === 'merchant'">
           <el-button type="text" @click="$router.push('/merchant/products')">商品列表</el-button>
-          <el-button type="text" @click="$router.push('/chat?role=merchant')">消息</el-button>
+          <el-button type="text" @click="$router.push('/merchant/chat')">消息</el-button>
           <el-button type="text" @click="$router.push('/merchant/my-products')">我的商品</el-button>
           <el-button type="text" @click="$router.push('/merchant/sales')">销售记录</el-button>
           <el-button type="text" @click="$router.push('/merchant/wallet')">钱包</el-button>
@@ -28,18 +31,38 @@
 
         <!-- User/Public Context Links -->
         <template v-else>
-          <el-button type="text" @click="$router.push('/products')">商品列表</el-button>
+          <el-button type="text" @click="$router.push('/customer/products')">商品列表</el-button>
           <el-button v-if="!userSession.token" type="text" @click="$router.push('/merchant/login')" style="color: #e6a23c">商家入驻</el-button>
           <template v-if="userSession.token">
-            <el-button type="text" @click="$router.push('/chat?role=user')">消息</el-button>
-            <el-button type="text" @click="$router.push('/orders')">我的订单</el-button>
-            <el-button type="text" @click="$router.push('/wallet')">钱包</el-button>
+            <el-button type="text" @click="$router.push('/customer/chat')">消息</el-button>
+            <el-button type="text" @click="$router.push('/customer/orders')">我的订单</el-button>
+            <el-button type="text" @click="$router.push('/customer/wallet')">钱包</el-button>
           </template>
         </template>
       </nav>
 
       <div class="user-section">
-        <template v-if="userInfo">
+        <template v-if="isRootPath">
+          <div class="role-status-bar">
+            <div class="status-chip" :class="{ active: !!userSession.token }">
+              <span class="status-dot"></span>
+              <span class="status-text">顾客端</span>
+              <span v-if="userSession.token" class="status-user">{{ userSession.user?.username }}</span>
+            </div>
+            <div class="status-chip" :class="{ active: !!merchantSession.token }">
+              <span class="status-dot"></span>
+              <span class="status-text">商家端</span>
+              <span v-if="merchantSession.token" class="status-user">{{ merchantSession.user?.username }}</span>
+            </div>
+            <div class="status-chip" :class="{ active: !!adminSession.token }">
+              <span class="status-dot"></span>
+              <span class="status-text">管理端</span>
+              <span v-if="adminSession.token" class="status-user">{{ adminSession.user?.username }}</span>
+            </div>
+          </div>
+          <el-button v-if="anyLoggedIn" type="danger" size="small" @click="handleLogoutAll">全部退出</el-button>
+        </template>
+        <template v-else-if="userInfo">
           <span class="user-info">
             {{ userInfo.username }} ({{ userInfo.role === 'merchant' ? '商家' : (userInfo.role === 'admin' ? '管理员' : '用户') }})
           </span>
@@ -56,11 +79,15 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import store from '../store'
 
 const router = useRouter()
+const route = useRoute()
+
+const isRootPath = computed(() => route.path === '/')
+const isAuthPage = computed(() => ['/login', '/register'].includes(route.path))
 
 // Get session status for ALL roles
 const userSession = computed(() => store.state.user)
@@ -78,6 +105,14 @@ const isMerchant = computed(() => userInfo.value?.role === 'merchant')
 // Helper to check if ANY role is logged in
 const anyLoggedIn = computed(() => !!(userSession.value.token || merchantSession.value.token || adminSession.value.token))
 
+const handleLogoutAll = () => {
+  store.logout('user')
+  store.logout('merchant')
+  store.logout('admin')
+  ElMessage.success('已退出所有登录')
+  router.push('/')
+}
+
 const getRoleClass = () => {
   if (activeRole.value === 'admin') return 'navbar-admin'
   if (activeRole.value === 'merchant') return 'navbar-merchant'
@@ -87,7 +122,7 @@ const getRoleClass = () => {
 const handleLogoClick = () => {
   if (activeRole.value === 'admin') router.push('/admin/all-users')
   else if (activeRole.value === 'merchant') router.push('/merchant')
-  else router.push('/')
+  else router.push('/customer')
 }
 
 const handleLoginClick = () => {
@@ -106,7 +141,7 @@ const handleLogout = () => {
   const role = store.getActiveRole()
   store.logout(role)
   ElMessage.success('已退出登录')
-  router.push('/login')
+  router.push('/')
 }
 </script>
 
@@ -199,5 +234,50 @@ const handleLogout = () => {
 
 .user-info {
   font-size: 14px;
+}
+
+.role-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 16px;
+  background: #f5f7fa;
+  font-size: 13px;
+  color: #909399;
+  transition: all 0.3s;
+}
+
+.status-chip.active {
+  background: #ecf5ff;
+  color: #409eff;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #c0c4cc;
+  transition: background 0.3s;
+}
+
+.status-chip.active .status-dot {
+  background: #67c23a;
+  box-shadow: 0 0 4px rgba(103, 194, 58, 0.6);
+}
+
+.status-text {
+  font-weight: 500;
+}
+
+.status-user {
+  font-weight: 600;
+  color: #303133;
 }
 </style>

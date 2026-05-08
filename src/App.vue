@@ -32,13 +32,14 @@ const connectWebSocket = (uid, token) => {
     if (['chat_message', 'typing'].includes(eventType)) {
       window.dispatchEvent(new CustomEvent(`chat-${eventType.replace('_', '-')}`, { detail: data.data }))
       
-      if (eventType === 'chat_message' && window.location.pathname !== '/chat') {
+      if (eventType === 'chat_message' && !window.location.pathname.endsWith('/chat')) {
+        const chatPath = currentRole === 'merchant' ? '/merchant/chat' : (currentRole === 'admin' ? '/admin/chat' : '/customer/chat')
         ElNotification({
           title: '新消息',
           message: data.data.content.length > 20 ? data.data.content.substring(0, 20) + '...' : data.data.content,
           type: 'info',
           position: 'bottom-right',
-          onClick: () => { window.location.href = '/chat' }
+          onClick: () => { window.location.href = chatPath }
         })
       }
       return

@@ -21,27 +21,40 @@ const routes = [
     component: () => import('../views/Register.vue'),
     meta: { requiresAuth: false, guestOnly: true }
   },
+  // Customer Routes
   {
-    path: '/products',
-    name: 'Products',
+    path: '/customer',
+    name: 'CustomerHome',
+    component: () => import('../views/CustomerHome.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/customer/login',
+    name: 'CustomerLogin',
+    component: () => import('../views/Login.vue'),
+    meta: { requiresAuth: false, guestOnly: true }
+  },
+  {
+    path: '/customer/products',
+    name: 'CustomerProducts',
     component: () => import('../views/Products.vue'),
     meta: { requiresAuth: false }
   },
   {
-    path: '/orders',
-    name: 'Orders',
+    path: '/customer/orders',
+    name: 'CustomerOrders',
     component: () => import('../views/Orders.vue'),
     meta: { requiresAuth: true }
   },
   {
-    path: '/wallet',
-    name: 'Wallet',
+    path: '/customer/wallet',
+    name: 'CustomerWallet',
     component: () => import('../views/Wallet.vue'),
     meta: { requiresAuth: true }
   },
   {
-    path: '/chat',
-    name: 'Chat',
+    path: '/customer/chat',
+    name: 'CustomerChat',
     component: () => import('../views/Chat.vue'),
     meta: { requiresAuth: true }
   },
@@ -56,6 +69,12 @@ const routes = [
     path: '/merchant',
     name: 'MerchantHome',
     component: () => import('../views/Home.vue'),
+    meta: { requiresAuth: true, requiresMerchant: true }
+  },
+  {
+    path: '/merchant/chat',
+    name: 'MerchantChat',
+    component: () => import('../views/Chat.vue'),
     meta: { requiresAuth: true, requiresMerchant: true }
   },
   {
@@ -93,6 +112,12 @@ const routes = [
     path: '/admin/users',
     name: 'AdminUsers',
     component: () => import('../views/admin/Users.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/admin/chat',
+    name: 'AdminChat',
+    component: () => import('../views/Chat.vue'),
     meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
@@ -141,7 +166,7 @@ router.beforeEach((to, from, next) => {
   } else if (path.startsWith('/merchant')) {
     role = 'merchant'
     localStorage.setItem('last_active_role', 'merchant')
-  } else if (path === '/' || path === '/products' || path === '/orders' || path === '/wallet') {
+  } else if (path.startsWith('/customer') || path === '/' || path === '/login' || path === '/register') {
     role = 'user'
     localStorage.setItem('last_active_role', 'user')
   } else {
@@ -158,7 +183,7 @@ router.beforeEach((to, from, next) => {
     } else if (path.startsWith('/merchant')) {
       next('/merchant/login')
     } else {
-      next('/login')
+      next('/customer/login')
     }
   } else if (to.meta.requiresAdmin && user.role !== 'admin') {
     ElMessage.error('权限不足')
@@ -166,6 +191,16 @@ router.beforeEach((to, from, next) => {
   } else if (to.meta.requiresMerchant && user.role !== 'merchant' && user.role !== 'admin') {
     ElMessage.error('权限不足')
     next('/merchant/login')
+  } else if (to.meta.guestOnly && token) {
+    if (path === '/login' || path === '/register') {
+      next()
+    } else if (path.startsWith('/admin')) {
+      next('/admin/all-users')
+    } else if (path.startsWith('/merchant')) {
+      next('/merchant/my-products')
+    } else {
+      next('/customer')
+    }
   } else {
     next()
   }

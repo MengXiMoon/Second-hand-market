@@ -1,7 +1,29 @@
 <template>
   <Layout>
     <div class="login">
-      <el-card class="login-card">
+      <el-card class="login-card" v-if="showRoleSelection">
+        <template #header>
+          <h2>选择登录入口</h2>
+        </template>
+        <div class="role-selection">
+          <el-card class="role-card" shadow="hover" @click="selectRole('user')">
+            <el-icon :size="48" color="#409eff"><User /></el-icon>
+            <h3>顾客登录</h3>
+            <p>浏览商品，购买二手好物</p>
+          </el-card>
+          <el-card class="role-card" shadow="hover" @click="selectRole('merchant')">
+            <el-icon :size="48" color="#e6a23c"><Shop /></el-icon>
+            <h3>商家登录</h3>
+            <p>发布商品，管理店铺</p>
+          </el-card>
+          <el-card class="role-card" shadow="hover" @click="selectRole('admin')">
+            <el-icon :size="48" color="#f56c6c"><Setting /></el-icon>
+            <h3>管理员登录</h3>
+            <p>审核商品，管理用户</p>
+          </el-card>
+        </div>
+      </el-card>
+      <el-card class="login-card" v-else>
         <template #header>
           <h2>{{ title }}</h2>
         </template>
@@ -29,31 +51,44 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { login, getCurrentUser } from '../api/auth'
 import store from '../store'
 import Layout from '../components/Layout.vue'
 
-
-
 const router = useRouter()
+const route = useRoute()
 const formRef = ref(null)
 const loading = ref(false)
+const selectedRole = ref('user')
 
-// Determine the target role context from the path
-const getRoleContext = () => {
-  const path = window.location.pathname
+const showRoleSelection = computed(() => {
+  const path = route.path
+  return path === '/login'
+})
+
+const selectRole = (role) => {
+  selectedRole.value = role
+  if (role === 'merchant') {
+    router.replace('/merchant/login')
+  } else if (role === 'admin') {
+    router.replace('/admin/login')
+  } else {
+    router.replace('/customer/login')
+  }
+}
+
+const targetRole = computed(() => {
+  const path = route.path
   if (path.startsWith('/admin')) return 'admin'
   if (path.startsWith('/merchant')) return 'merchant'
   return 'user'
-}
-
-const targetRole = getRoleContext()
+})
 const title = computed(() => {
-  if (targetRole === 'admin') return '管理员登录'
-  if (targetRole === 'merchant') return '商家登录'
-  return '登录'
+  if (targetRole.value === 'admin') return '管理员登录'
+  if (targetRole.value === 'merchant') return '商家登录'
+  return '顾客登录'
 })
 
 const form = reactive({
@@ -75,20 +110,17 @@ const handleLogin = async () => {
       try {
         const { data: tokenData } = await login(form.username, form.password)
         
-        // Fetch profile to verify role permission for this specific entryway
         const { data: user } = await getCurrentUser(tokenData.access_token)
         
-        // Role Access Control for login page
-        if (targetRole === 'admin' && user.role !== 'admin') {
+        if (targetRole.value === 'admin' && user.role !== 'admin') {
           throw { response: { data: { detail: '此账号没有管理员权限' } } }
         }
-        if (targetRole === 'merchant' && user.role !== 'merchant' && user.role !== 'admin') {
+        if (targetRole.value === 'merchant' && user.role !== 'merchant' && user.role !== 'admin') {
           throw { response: { data: { detail: '此账号没有商家权限' } } }
         }
 
-        // Set session for the specific intended role
         store.setUser(user, tokenData.access_token)
-        store.setContextRole(targetRole)
+        store.setContextRole(targetRole.value)
         
         ElMessage.success({
           message: '登录成功',
@@ -97,12 +129,12 @@ const handleLogin = async () => {
         })
         
         setTimeout(() => {
-          if (targetRole === 'admin') {
+          if (targetRole.value === 'admin') {
             router.push('/admin/all-users')
-          } else if (targetRole === 'merchant') {
+          } else if (targetRole.value === 'merchant') {
             router.push('/merchant/my-products')
           } else {
-            router.push('/')
+            router.push('/customer')
           }
         }, 500)
       } catch (error) {
@@ -129,5 +161,32 @@ const handleLogin = async () => {
 .login-card h2 {
   margin: 0;
   text-align: center;
+}
+
+.role-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.role-card {
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: center;
+  padding: 20px;
+}
+
+.role-card:hover {
+  transform: translateY(-4px);
+}
+
+.role-card h3 {
+  margin: 12px 0 8px;
+  color: #303133;
+}
+
+.role-card p {
+  color: #909399;
+  font-size: 14px;
 }
 </style>

@@ -27,7 +27,7 @@ const getActiveRole = () => {
   if (path.startsWith('/merchant')) return 'merchant'
   
   // Explicitly force 'user' role for common buyer-facing paths to prevent token leakage from other roles
-  if (path === '/' || path === '/products' || path === '/orders' || path === '/wallet' || path === '/chat') {
+  if (path.startsWith('/customer') || path === '/' || path === '/login' || path === '/register') {
     // Note: /chat handles its own role via query param usually, but default should be user if no param
     const params = new URLSearchParams(window.location.search)
     if (!params.get('role')) return 'user'

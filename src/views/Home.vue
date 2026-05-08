@@ -6,9 +6,14 @@
           <div class="hero-content">
             <h1>欢迎来到二手市场</h1>
             <p>发现优质二手商品，轻松买卖，闲置变宝</p>
-            <el-button type="primary" size="large" @click="$router.push('/products')">
-              浏览商品
-            </el-button>
+            <div class="hero-buttons">
+              <el-button type="primary" size="large" @click="$router.push('/customer/products')">
+                浏览商品
+              </el-button>
+              <el-button type="success" size="large" @click="$router.push('/login')">
+                登录账号
+              </el-button>
+            </div>
           </div>
         </el-col>
       </el-row>
@@ -31,11 +36,29 @@
         <el-col :xs="24" :sm="8">
           <el-card class="feature-card">
             <el-icon :size="40" color="#e6a23c"><User /></el-icon>
-            <h3>多重角色</h3>
-            <p>买家、卖家、管理员一应俱全</p>
-            <div v-if="!anyLoggedIn" class="role-entry">
-              <el-button type="warning" plain size="small" @click="$router.push('/merchant/login')">商家入口</el-button>
-              <el-button type="danger" plain size="small" @click="$router.push('/admin/login')">后台管理</el-button>
+            <h3>登录状态</h3>
+            <div class="role-status">
+              <div class="status-item">
+                <span class="status-label">顾客端</span>
+                <el-tag v-if="userSession.token" type="success" size="small">
+                  {{ userInfoForRole('user') }}
+                </el-tag>
+                <el-tag v-else type="info" size="small">未登录</el-tag>
+              </div>
+              <div class="status-item">
+                <span class="status-label">商家端</span>
+                <el-tag v-if="merchantSession.token" type="success" size="small">
+                  {{ userInfoForRole('merchant') }}
+                </el-tag>
+                <el-tag v-else type="info" size="small">未登录</el-tag>
+              </div>
+              <div class="status-item">
+                <span class="status-label">管理端</span>
+                <el-tag v-if="adminSession.token" type="success" size="small">
+                  {{ userInfoForRole('admin') }}
+                </el-tag>
+                <el-tag v-else type="info" size="small">未登录</el-tag>
+              </div>
             </div>
           </el-card>
         </el-col>
@@ -49,9 +72,17 @@ import { computed } from 'vue'
 import Layout from '../components/Layout.vue'
 import store from '../store'
 
-const anyLoggedIn = computed(() => {
-  return !!(store.state.user.token || store.state.merchant.token || store.state.admin.token)
-})
+const userSession = computed(() => store.state.user)
+const merchantSession = computed(() => store.state.merchant)
+const adminSession = computed(() => store.state.admin)
+
+const userInfoForRole = (role) => {
+  const session = store.state[role]
+  if (session && session.user) {
+    return session.user.username
+  }
+  return ''
+}
 </script>
 
 <style scoped>
@@ -73,6 +104,12 @@ const anyLoggedIn = computed(() => {
   font-size: 18px;
   color: #606266;
   margin-bottom: 32px;
+}
+
+.hero-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
 }
 
 .features {
@@ -98,5 +135,29 @@ const anyLoggedIn = computed(() => {
   display: flex;
   justify-content: center;
   gap: 12px;
+}
+
+.role-status {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.status-item:last-child {
+  border-bottom: none;
+}
+
+.status-label {
+  font-size: 14px;
+  color: #606266;
 }
 </style>

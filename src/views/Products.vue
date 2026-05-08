@@ -105,8 +105,9 @@ const loadProducts = async () => {
 }
 
 const handleContact = (product) => {
+  const chatPath = isMerchant.value ? '/merchant/chat' : (isAdmin.value ? '/admin/chat' : '/customer/chat')
   router.push({
-    path: '/chat',
+    path: chatPath,
     query: { target_id: product.merchant_id }
   })
 }
