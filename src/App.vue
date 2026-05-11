@@ -33,7 +33,8 @@ const wsBase = import.meta.env.VITE_WS_BASE_URL || `${location.protocol === 'htt
     if (['chat_message', 'typing'].includes(eventType)) {
       window.dispatchEvent(new CustomEvent(`chat-${eventType.replace('_', '-')}`, { detail: data.data }))
       
-      if (eventType === 'chat_message' && !window.location.pathname.endsWith('/chat')) {
+      if (eventType === 'chat_message' && !window.location.pathname.endsWith('/chat')
+          && data.data.msg_type !== 'system') {
         const chatPath = currentRole === 'merchant' ? '/merchant/chat' : (currentRole === 'admin' ? '/admin/chat' : '/customer/chat')
         ElNotification({
           title: '新消息',
