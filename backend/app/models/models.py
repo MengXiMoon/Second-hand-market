@@ -1,12 +1,11 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime, Enum
 from sqlalchemy.orm import relationship
 import enum
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.db.session import Base
 
 def get_beijing_time():
-    # Offset UTC by 8 hours for Beijing Time
-    return datetime.utcnow() + timedelta(hours=8)
+    return datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=8)
 
 class UserRole(str, enum.Enum):
     USER = "user"

@@ -6,7 +6,7 @@
 set -e
 
 # ---- 请修改这里为你的服务器 IP 或域名 ----
-SERVER_IP=""
+SERVER_IP="192.168.56.102"
 # SERVER_IP="123.45.67.89"
 # SERVER_IP="example.com"
 
@@ -43,11 +43,19 @@ fi
 # =============================================
 echo -e "\n${CYAN}[1/7] 安装系统依赖...${NC}"
 sudo apt-get update -y
-sudo apt-get install -y python3 python3-pip python3-venv nginx curl
+sudo apt-get install -y python3 python3-pip python3-venv python3-dev build-essential libffi-dev libssl-dev nginx curl
 
-# 安装 Node.js 18+ (via NodeSource)
+# 安装 Node.js 22.x (via NodeSource)
 if ! command -v node &>/dev/null; then
-    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+    curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+fi
+
+# 如果已安装但版本太旧，强制升级到 22
+NODE_MAJOR=$(node -v 2>/dev/null | cut -d. -f1 | tr -d 'v')
+if [ "$NODE_MAJOR" -lt 20 ]; then
+    echo -e "${YELLOW}  Node.js 版本过低 (v$NODE_MAJOR)，升级到 22.x...${NC}"
+    curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
     sudo apt-get install -y nodejs
 fi
 echo -e "${GREEN}  Python: $(python3 --version)${NC}"
@@ -80,6 +88,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES=1440
 CORS_ORIGINS=["*"]
 UPLOAD_DIR="static/uploads"
 ENVEOF
+    # 修正文件所有权（sudo 下生成的文件属 root）
+    if [ -n "$SUDO_USER" ]; then
+        chown "$SUDO_USER:$SUDO_USER" .env
+    fi
 fi
 
 deactivate
@@ -128,6 +140,11 @@ server {
     listen 80;
     server_name $SERVER_IP;
 
+    # gzip 压缩
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml text/javascript image/svg+xml;
+    gzip_min_length 256;
+
     # 前端静态文件
     root $FRONTEND_DIR/dist;
     index index.html;
@@ -157,6 +174,7 @@ server {
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_read_timeout 86400;
+        proxy_buffering off;
     }
 
     # 静态文件（上传图片等）
@@ -172,7 +190,12 @@ server {
 NGINXEOF
 
 sudo ln -sf /etc/nginx/sites-available/second-hand-market /etc/nginx/sites-enabled/
-sudo rm -f /etc/nginx/sites-enabled/default
+# 仅移除默认站点（如果存在且为标准配置）
+if [ -f /etc/nginx/sites-enabled/default ]; then
+    if grep -q "Welcome to nginx" /etc/nginx/sites-enabled/default 2>/dev/null; then
+        sudo rm -f /etc/nginx/sites-enabled/default
+    fi
+fi
 sudo nginx -t && sudo systemctl reload nginx
 echo -e "${GREEN}  nginx 配置完成${NC}"
 
@@ -181,6 +204,12 @@ echo -e "${GREEN}  nginx 配置完成${NC}"
 # =============================================
 echo -e "\n${CYAN}[6/7] 配置 systemd 后台服务...${NC}"
 
+# 用非 root 用户运行（若通过 sudo 执行，使用 SUDO_USER）
+SERVICE_USER="${SUDO_USER:-$USER}"
+if [ "$SERVICE_USER" = "root" ]; then
+    echo -e "${YELLOW}  警告: 服务将以 root 运行，建议创建独立用户${NC}"
+fi
+
 sudo tee /etc/systemd/system/second-hand-market.service > /dev/null << SYSTEMDEOF
 [Unit]
 Description=Second-hand Market Backend
@@ -188,9 +217,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=$USER
+User=$SERVICE_USER
 WorkingDirectory=$BACKEND_DIR
-Environment="PATH=$BACKEND_DIR/venv/bin:/usr/bin"
+Environment="PATH=$BACKEND_DIR/venv/bin:/usr/local/bin:/usr/bin:/bin"
 ExecStart=$BACKEND_DIR/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=3

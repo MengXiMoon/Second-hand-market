@@ -10,7 +10,8 @@ let refreshTimer = null
 const connectWebSocket = (uid, token) => {
   if (sockets[uid]) return
 
-  const wsBase = import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8000/v1'
+  // 生产环境: 用当前页面域名推导 WebSocket 地址
+const wsBase = import.meta.env.VITE_WS_BASE_URL || `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/v1`
   const ws = new WebSocket(`${wsBase}/ws/${uid}?token=${encodeURIComponent(token)}`)
   sockets[uid] = ws
   

@@ -26,7 +26,8 @@ app.add_middleware(
 
 # Static files for uploads (images, etc.)
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+static_root = os.path.dirname(settings.UPLOAD_DIR) or "static"
+app.mount("/static", StaticFiles(directory=static_root), name="static")
 
 # Include API Router
 app.include_router(api_router, prefix=settings.API_V1_STR)

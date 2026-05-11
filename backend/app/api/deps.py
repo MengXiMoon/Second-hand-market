@@ -16,7 +16,7 @@ SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
 
 reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl="v1/login/access-token"
+    tokenUrl=f"{settings.API_V1_STR.strip('/')}/login/access-token"
 )
 
 def get_current_user(
