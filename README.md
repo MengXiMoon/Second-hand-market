@@ -1,100 +1,183 @@
-# 二手交易市场项目 (Python + Vue)
+# 二手交易市场 (Second-hand Market)
 
-这是一个基于 Python (FastAPI) 后端和 Vue 前端构建的二手交易市场系统。
+基于 Python FastAPI + Vue 3 的在线二手商品交易平台，支持三端登录隔离、实时通信、钱包交易、平台抽成。
 
-## 功能特性
+## 技术栈
 
-系统支持三种角色：
-- **普通用户**：注册（需审核）、登录、查看商品、下单购买、管理个人订单、钱包管理（充值、查看记录）。
-- **商家**：注册（需审核）、商品上架（需审核）、编辑商品、管理买家订单、钱包管理（提现、交易收益）。
-- **管理员**：审核用户/商品、查看系统交易记录、手动充值、**自动收取交易佣金**。
+| 层级 | 技术 |
+|------|------|
+| 后端框架 | FastAPI (Python) |
+| 前端框架 | Vue 3 + Vite + Element Plus |
+| 数据库 | SQLite (SQLAlchemy ORM) |
+| 认证 | JWT (OAuth2 Password Bearer) + bcrypt |
+| 实时通信 | WebSocket |
+| 部署 | nginx + systemd (Ubuntu) |
 
-### 核心业务逻辑
-- **钱包系统**：用户可自行充值模拟资金。商家在销售商品后收入会自动打入钱包。
-- **平台抽成**：每笔订单成交后，系统自动扣除 **1% 的平台手续费**，并存入管理员钱包。
-- **提现功能**：商家可以将钱包内的余额进行“提现”操作，方便模拟资金流转。
+## 功能概览
 
-## 快速启动 (一键配置并运行) 🚀
+### 买家用户
+- 注册登录（管理员审核）、浏览商品、搜索筛选
+- 加入购物车、下单购买、钱包充值/提现
+- 订单管理、实时私信聊天（与卖家跨机器通信）
+- 商品收藏（心愿单）
 
-为了方便在不同电脑上快速部署，项目根目录下提供了一个一键启动脚本。它会自动执行：**创建虚拟环境、安装依赖、生成配置文件、初始化数据库、启动后端、启动前端**。
+### 商家
+- 商品上架/编辑/下架（管理员审核）
+- 销售记录查看、收入自动入账
+- 与买家实时聊天
 
-### Windows 系统
-在项目根目录下右键点击 `OneClickStart.ps1`，选择 **“使用 PowerShell 运行”**。
+### 管理员
+- 用户审核（通过/拒绝）、商品审核（通过/拒绝，含驳回理由）
+- 全站订单/用户/商品管理、批量操作
+- 手动充值/退款、交易流水查看
+- 管理员仪表板、数据导出
 
-或者在终端执行：
+### 核心业务
+- **钱包系统**：用户充值 → 购买扣款 → 平台扣 1% 佣金 → 商家收款
+- **商品审核流程**：商家提交 → 管理员审批/驳回 → 驳回后可修改重新提交
+- **订单状态机**：ordered → paid → shipped → completed / cancelled / refund
+- **登录互斥**：同一账号只能在一台设备在线，先登录者不被顶号
+- **实时通知**：WebSocket 推送注册审核、商品审核、新订单、新消息
+
+## 快速开始
+
+### Windows 本地开发
+
 ```powershell
+# 一键启动
 .\OneClickStart.ps1
 ```
 
----
-
-## 手动开发环境配置 (Backend)
-如果您需要手动调试后端，请进入 `backend/` 目录。
-
-### 1. 创建并开启虚拟环境 (推荐)
-为了保持环境隔离，建议先创建一个虚拟环境：
+或者分别启动：
 
 ```powershell
-# 创建虚拟环境
+# 终端 1 — 后端
+cd backend
 python -m venv venv
-
-# 激活虚拟环境 (Windows)
 .\venv\Scripts\activate
+pip install -r requirements.txt
+python -m app.main                    # → http://localhost:8000
 
-# 如果是 macOS/Linux 
-# source venv/bin/activate
-```
-
-### 2. 安装依赖
-```powershell
-# 确保在 venv 激活状态下安装
-pip install -r requirements.txt -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
-```
-
-### 3. 配置文件
-在 `backend/` 目录下创建或编辑 `.env` 文件：
-```env
-PROJECT_NAME="Second Hand Market API"
-DATABASE_URL="sqlite:///./sql_app.db"
-SECRET_KEY="your_secret_key_here"
-ALGORITHM="HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES=1440
-```
-
-### 4. 运行程序
-在 `backend/` 目录下运行：
-```powershell
-python -m app.main
-```
-
-### 5. API 交互文档
-启动成功后，可以通过浏览器访问以下地址查看和测试接口：
-- **Swagger UI**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- **ReDoc**: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
-
-## 前端开发 (Frontend)
-
-项目根目录包含了基于 **Vue 3** 和 **Vite** 的前端开发环境。
-
-### 1. 安装依赖
-在项目根目录下运行：
-```powershell
+# 终端 2 — 前端
 npm install
+npm run dev                           # → http://localhost:5173
 ```
 
-### 2. 启动开发服务器
-```powershell
-npm run dev
-```
-启动后，通常可以在 `http://localhost:5173` 访问前端界面。
+### Ubuntu 云服务器部署
 
-### 3. 构建生产版本
-如果您需要打包部署：
-```powershell
-npm run build
+```bash
+cd Second-hand-market
+chmod +x deploy.sh
+sudo ./deploy.sh
 ```
-打包后的文件将生成在 `dist/` 目录下。
 
-## 注意事项
-- **注册审核**：新注册的用户默认是未审核状态，无法直接登录。您需要使用第一个注册的管理员账号，或直接修改数据库中的 `is_verified` 字段来通过审核。
-- **商品审核**：商家上传的商品也需要管理员在后端进行 `approved` 操作后才会展示在首页。
+部署后访问 `http://<服务器IP>`，自动化完成 nginx 反向代理 + systemd 自启 + 数据库初始化 + 前端构建。
+
+## 管理员 & 测试账号
+
+首次启动后端时，管理员密码随机生成并打印在终端。
+
+| 角色 | 账号 | 密码 |
+|------|------|------|
+| 管理员 | admin | 启动时随机生成（或设置 `ADMIN_INIT_PASSWORD`） |
+| 商家 | phone_merchant / book_merchant / cloth_merchant / furniture_merchant / elec_merchant | 123456 |
+| 买家 | buyer1 / buyer2 / buyer3 | 123456 |
+
+生成 30 件测试商品：
+
+```bash
+cd backend
+python init_test_data.py
+```
+
+## 项目结构
+
+```
+Second-hand-market/
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── deps.py                # 认证依赖注入
+│   │   │   └── v1/
+│   │   │       ├── api.py             # 路由注册
+│   │   │       └── endpoints/         # auth / users / products / orders / wallet / chat / websockets
+│   │   ├── core/
+│   │   │   ├── config.py              # 配置管理 (pydantic-settings)
+│   │   │   ├── security.py            # JWT + bcrypt
+│   │   │   ├── session_manager.py     # 登录互斥会话管理
+│   │   │   └── websocket_manager.py   # WebSocket 连接管理
+│   │   ├── db/
+│   │   │   └── session.py             # SQLAlchemy 数据库连接
+│   │   ├── models/
+│   │   │   └── models.py              # 数据模型 (User / Product / Order / Wallet / Chat)
+│   │   ├── schemas/                   # Pydantic 请求/响应模型
+│   │   ├── services/                  # 业务逻辑 (order_service / chat_service)
+│   │   └── main.py                    # FastAPI 入口
+│   ├── init_admin.py                  # 管理员初始化
+│   ├── init_test_data.py              # 测试数据生成
+│   ├── requirements.txt
+│   └── run_server.ps1                 # Windows 后端启动脚本
+├── src/
+│   ├── api/                           # 前端 HTTP 请求封装
+│   ├── components/                    # 公共组件 (Layout / Navbar)
+│   ├── router/                        # 路由配置（三端路由）
+│   ├── store/                         # 状态管理（三端会话隔离）
+│   ├── utils/                         # 工具函数 (格式化 / 状态映射)
+│   └── views/                         # 页面视图
+│       ├── Login.vue / Register.vue / Home.vue / Products.vue
+│       ├── Orders.vue / Wallet.vue / Chat.vue / MyProducts.vue / Sales.vue
+│       └── admin/                     # 管理端页面
+├── deploy.sh                          # Ubuntu 一键部署脚本
+├── OneClickStart.ps1                  # Windows 一键启动脚本
+├── vite.config.js
+└── package.json
+```
+
+## 部署架构
+
+```
+浏览器 (任意机器)
+    │
+    ▼
+┌──────────────────────────┐
+│  nginx :80               │
+│  ├─ /           → 前端   │  dist/ 静态文件
+│  ├─ /v1/        → 后端   │  proxy_pass → uvicorn :8000
+│  ├─ /v1/ws/     → WS    │  WebSocket 代理 (Upgrade)
+│  └─ /static/    → 文件   │  上传图片
+└──────────────────────────┘
+         │
+    uvicorn :8000 (systemd 管理，开机自启)
+         │
+    SQLite (sql_app.db)
+```
+
+## API 文档
+
+启动后端后访问：
+- Swagger UI: `http://<host>:8000/docs`
+- ReDoc: `http://<host>:8000/redoc`
+
+## 环境变量
+
+### 后端 (.env)
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `DATABASE_URL` | 数据库连接 | `sqlite:///./sql_app.db` |
+| `SECRET_KEY` | JWT 签名密钥 | 自动生成 |
+| `CORS_ORIGINS` | 跨域白名单 | `["*"]` |
+| `UPLOAD_DIR` | 上传文件目录 | `static/uploads` |
+| `ALLOW_SELF_RECHARGE` | 允许自充值 | `true` |
+
+### 前端 (.env.production)
+
+| 变量 | 说明 |
+|------|------|
+| `VITE_API_BASE_URL` | API 地址（nginx 代理下填 `/v1`） |
+| `VITE_WS_BASE_URL` | WebSocket 地址 |
+| `VITE_STATIC_BASE_URL` | 静态文件地址 |
+
+## 许可证
+
+MIT
