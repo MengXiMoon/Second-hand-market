@@ -3,11 +3,21 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.core.session_manager import session_manager
 from app.models.models import User, UserRole, Transaction, Wallet, Order, Product
 from app.schemas import schemas
 from app.db.session import get_db
 
 router = APIRouter()
+
+@router.post("/{user_id}/force-logout")
+def force_logout(
+    user_id: int,
+    current_user: User = Depends(deps.get_current_active_admin),
+) -> Any:
+    """管理员强制下线某用户，释放其登录会话"""
+    session_manager.logout(user_id)
+    return {"message": f"用户 {user_id} 已被强制下线"}
 
 @router.get("/", response_model=List[schemas.User])
 def read_users(

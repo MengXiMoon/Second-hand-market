@@ -7,6 +7,10 @@ export const login = (username, password) => {
   return api.post('/login/access-token', formData)
 }
 
+export const logoutRequest = () => {
+  return api.post('/logout')
+}
+
 export const register = (userData) => {
   return api.post('/register', userData)
 }

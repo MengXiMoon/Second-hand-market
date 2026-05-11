@@ -7,11 +7,13 @@ from typing import Any
 from app.api import deps
 from app.core import security
 from app.core.websocket_manager import manager
+from app.core.session_manager import session_manager
 from app.models.models import User, UserRole, Wallet, Transaction, TransactionType
 from app.schemas import schemas
 from app.db.session import get_db
 
 router = APIRouter()
+
 
 @router.post("/login/access-token", response_model=schemas.Token)
 def login_access_token(
@@ -22,20 +24,43 @@ def login_access_token(
     if not user or not security.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect username or password",
+            detail="用户名或密码错误",
         )
     if not user.is_verified and user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Registration pending approval from Administrator",
+            detail="账号尚未通过管理员审核",
         )
+
+    # 清理过期会话（超过 24 小时的自动释放）
+    session_manager.clear_expired(86400)
+
+    # 登录互斥：同一账号已在其他设备登录，拒绝新登录
+    if session_manager.is_logged_in(user.id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"该账号已在其他设备登录，请勿重复登录",
+        )
+
     access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
+    session_manager.login(user.id, user.username)
+
     return {
         "access_token": security.create_access_token(
             {"username": user.username, "role": user.role}, expires_delta=access_token_expires
         ),
         "token_type": "bearer",
     }
+
+
+@router.post("/logout")
+def logout(
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """登出并释放会话，允许其他设备登录此账号"""
+    session_manager.logout(current_user.id)
+    return {"message": "登出成功"}
+
 
 @router.post("/register", response_model=schemas.User)
 def register_user(
@@ -51,7 +76,7 @@ def register_user(
             status_code=400,
             detail="The user with this username already exists in the system.",
         )
-    
+
     # Check email
     user = db.query(User).filter(User.email == user_in.email).first()
     if user:
@@ -60,8 +85,6 @@ def register_user(
             detail="The user with this email already exists in the system.",
         )
 
-    # Note: Admin users are auto-verified for the first time/manual setup
-    # Regular users and merchants are not verified until an admin approves them.
     db_user = User(
         username=user_in.username,
         email=user_in.email,
@@ -72,7 +95,7 @@ def register_user(
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    
+
     # Initialize wallet for every new user
     wallet = Wallet(user_id=db_user.id, balance=0)
     db.add(wallet)
@@ -85,5 +108,5 @@ def register_user(
         "data": {"user_id": db_user.id, "username": db_user.username}
     }
     background_tasks.add_task(manager.broadcast, notification_payload)
-    
+
     return db_user

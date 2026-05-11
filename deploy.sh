@@ -38,6 +38,25 @@ if [ -z "$SERVER_IP" ]; then
     exit 1
 fi
 
+# ---- 权限准备 ----
+ACTUAL_USER="${SUDO_USER:-$USER}"
+HOME_DIR=$(getent passwd "$ACTUAL_USER" | cut -d: -f6)
+echo -e "${GREEN}[信息] 运行用户: $ACTUAL_USER, 家目录: $HOME_DIR${NC}"
+
+# 确保 nginx 能访问用户家目录（否则 dist/ 报 403）
+if [ -d "$HOME_DIR" ]; then
+    chmod o+x "$HOME_DIR" 2>/dev/null || true
+fi
+
+# 修复之前 sudo 构建导致的 root 所有权问题
+for dir in dist node_modules; do
+    if [ -d "$FRONTEND_DIR/$dir" ]; then
+        chown -R "$ACTUAL_USER:$ACTUAL_USER" "$FRONTEND_DIR/$dir" 2>/dev/null || true
+    fi
+done
+chown "$ACTUAL_USER:$ACTUAL_USER" "$FRONTEND_DIR/.env.production" 2>/dev/null || true
+chown "$ACTUAL_USER:$ACTUAL_USER" "$BACKEND_DIR/.env" 2>/dev/null || true
+
 # =============================================
 # 1. 安装系统依赖
 # =============================================
@@ -118,7 +137,15 @@ cd "$FRONTEND_DIR"
 
 if [ ! -d "node_modules" ]; then
     npm install
+elif [ ! -f "node_modules/.package-lock.json" ]; then
+    echo -e "${YELLOW}  node_modules 不完整，重新安装...${NC}"
+    rm -rf node_modules
+    npm install
 fi
+
+# 确保前端文件所有者为正确用户
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$FRONTEND_DIR/dist" 2>/dev/null || true
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$FRONTEND_DIR/node_modules" 2>/dev/null || true
 
 # 写入生产环境配置
 cat > .env.production << ENVEOF
@@ -128,6 +155,8 @@ VITE_STATIC_BASE_URL=
 ENVEOF
 
 npm run build
+chown -R "$ACTUAL_USER:$ACTUAL_USER" "$FRONTEND_DIR/dist" 2>/dev/null || true
+chmod -R o+rX "$FRONTEND_DIR/dist" 2>/dev/null || true
 echo -e "${GREEN}  前端构建完毕 → dist/${NC}"
 
 # =============================================
@@ -204,11 +233,8 @@ echo -e "${GREEN}  nginx 配置完成${NC}"
 # =============================================
 echo -e "\n${CYAN}[6/7] 配置 systemd 后台服务...${NC}"
 
-# 用非 root 用户运行（若通过 sudo 执行，使用 SUDO_USER）
-SERVICE_USER="${SUDO_USER:-$USER}"
-if [ "$SERVICE_USER" = "root" ]; then
-    echo -e "${YELLOW}  警告: 服务将以 root 运行，建议创建独立用户${NC}"
-fi
+# 用非 root 用户运行
+SERVICE_USER="$ACTUAL_USER"
 
 sudo tee /etc/systemd/system/second-hand-market.service > /dev/null << SYSTEMDEOF
 [Unit]
