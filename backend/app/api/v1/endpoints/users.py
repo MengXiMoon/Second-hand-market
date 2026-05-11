@@ -4,9 +4,10 @@ from sqlalchemy.orm import Session
 
 from app.api import deps
 from app.core.session_manager import session_manager
-from app.models.models import User, UserRole, Transaction, Wallet, Order, Product
+from app.models.models import User, UserRole, Transaction, Wallet, Order, Product, MessageType
 from app.schemas import schemas
 from app.db.session import get_db
+from app.services.chat_service import find_or_create_conversation, create_message
 
 router = APIRouter()
 
@@ -50,6 +51,15 @@ def verify_user(
     user.is_verified = True
     db.commit()
     db.refresh(user)
+
+    # 自动发送审核通过欢迎消息
+    conv = find_or_create_conversation(db, current_user.id, user.id)
+    create_message(
+        db, conv.id, current_user.id,
+        f"【系统通知】您的账号「{user.username}」已通过审核，欢迎加入！如有问题可在此联系客服。",
+        MessageType.SYSTEM,
+    )
+
     return user
 
 @router.get("/pending", response_model=List[schemas.User])

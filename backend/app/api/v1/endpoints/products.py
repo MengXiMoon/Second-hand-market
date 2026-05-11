@@ -3,10 +3,11 @@ from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.api import deps
-from app.models.models import Product, ProductStatus, User, UserRole
+from app.models.models import Product, ProductStatus, User, UserRole, MessageType
 from app.schemas import schemas
 from app.db.session import get_db
 from app.core.websocket_manager import manager
+from app.services.chat_service import find_or_create_conversation, create_message
 
 router = APIRouter()
 
@@ -95,6 +96,15 @@ def audit_product(
         }
     }
     background_tasks.add_task(manager.send_personal_message, notification_payload, product.merchant_id)
+
+    # 自动发送审核结果系统消息给商家
+    conv = find_or_create_conversation(db, current_user.id, product.merchant_id)
+    remark_text = f" 驳回原因：{remark}" if remark and not approve else ""
+    create_message(
+        db, conv.id, current_user.id,
+        f"【审核通知】您的商品「{product.name}」已{status_label}{remark_text}",
+        MessageType.SYSTEM,
+    )
 
     return product
 

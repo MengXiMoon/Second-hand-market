@@ -102,6 +102,19 @@
           </template>
           <div v-else class="empty-chat">
             <el-empty description="选择一个会话开始聊天吧" />
+            <div v-if="isAdmin" class="broadcast-panel">
+              <el-divider />
+              <h4>📢 发送公告</h4>
+              <el-input
+                v-model="broadcastText"
+                type="textarea"
+                :rows="2"
+                placeholder="输入公告内容，将发送给全部用户..."
+              />
+              <el-button type="warning" @click="handleBroadcast" :loading="broadcasting" :disabled="!broadcastText.trim()">
+                发送全站公告
+              </el-button>
+            </div>
           </div>
         </el-main>
       </el-container>
@@ -115,11 +128,15 @@ import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Picture } from '@element-plus/icons-vue'
 import Layout from '../components/Layout.vue'
-import { getConversations, getMessages, startConversation, uploadChatImage } from '../api/chat'
+import { getConversations, getMessages, startConversation, uploadChatImage, broadcast } from '../api/chat'
 import store from '../store'
 
 const route = useRoute()
 const userId = computed(() => store.getCurrentSession().user?.id)
+const isAdmin = computed(() => store.getCurrentSession().user?.role === 'admin')
+
+const broadcastText = ref('')
+const broadcasting = ref(false)
 
 const conversations = ref([])
 const currentConversation = ref(null)
@@ -224,6 +241,20 @@ const handleSend = async () => {
     sendTypingStatus(false)
   } else {
     ElMessage.error('发送失败，请检查网络连接')
+  }
+}
+
+const handleBroadcast = async () => {
+  if (!broadcastText.value.trim()) return
+  broadcasting.value = true
+  try {
+    await broadcast(broadcastText.value)
+    ElMessage.success('公告已发送给所有用户')
+    broadcastText.value = ''
+  } catch (error) {
+    ElMessage.error(error.response?.data?.detail || '公告发送失败')
+  } finally {
+    broadcasting.value = false
   }
 }
 
@@ -501,7 +532,21 @@ onUnmounted(() => {
 .empty-chat {
   height: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+
+.broadcast-panel {
+  width: 400px;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.broadcast-panel h4 {
+  margin: 0;
+  color: #303133;
 }
 </style>

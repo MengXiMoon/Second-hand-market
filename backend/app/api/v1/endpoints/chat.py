@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, desc
 from typing import List, Optional
@@ -8,10 +8,12 @@ import shutil
 from datetime import datetime
 
 from app.db.session import get_db
-from app.models.models import Conversation, ChatMessage, User, MessageType
+from app.models.models import Conversation, ChatMessage, User, MessageType, UserRole
 from app.schemas import chat_schemas
+from app.api import deps
 from app.api.deps import get_current_user
 from app.core.config import settings
+from app.core.websocket_manager import manager
 
 # Allowed image extensions and their magic bytes
 ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
@@ -212,3 +214,63 @@ async def upload_chat_image(
         shutil.copyfileobj(file.file, buffer)
 
     return {"url": f"/static/uploads/{filename}"}
+
+
+@router.post("/broadcast")
+def broadcast(
+    content: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_active_admin),
+):
+    """管理员向所有用户发送系统公告"""
+    from app.services.chat_service import find_or_create_conversation, create_message
+
+    users = db.query(User).filter(
+        User.is_verified == True, User.id != current_user.id
+    ).all()
+
+    count = 0
+    for user in users:
+        conv = find_or_create_conversation(db, current_user.id, user.id)
+        create_message(
+            db, conv.id, current_user.id,
+            f"📢 【平台公告】{content}",
+            MessageType.SYSTEM,
+        )
+        count += 1
+
+    # WebSocket 推送公告给所有在线用户
+    background_tasks.add_task(
+        manager.broadcast,
+        {"type": "admin_event",
+         "message": f"平台公告：{content[:50]}{'...' if len(content) > 50 else ''}",
+         "data": {"broadcast": True, "content": content}},
+    )
+
+    return {"message": f"公告已发送给 {count} 个用户"}
+
+
+@router.post("/support", response_model=chat_schemas.Conversation)
+def contact_support(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """用户联系客服，自动创建与管理员的对话"""
+    from app.services.chat_service import find_or_create_conversation, create_message
+
+    admin = db.query(User).filter(User.role == UserRole.ADMIN).first()
+    if not admin:
+        raise HTTPException(status_code=500, detail="系统暂无管理员在线")
+    if admin.id == current_user.id:
+        raise HTTPException(status_code=400, detail="管理员无需联系客服")
+
+    conv = find_or_create_conversation(db, current_user.id, admin.id)
+    # 首次联系客服时发一条打招呼消息
+    create_message(
+        db, conv.id, current_user.id,
+        f"您好，我需要帮助！",
+        MessageType.TEXT,
+    )
+
+    return conv

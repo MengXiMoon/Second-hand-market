@@ -37,6 +37,7 @@
             <el-button type="text" @click="$router.push('/customer/chat')">消息</el-button>
             <el-button type="text" @click="$router.push('/customer/orders')">我的订单</el-button>
             <el-button type="text" @click="$router.push('/customer/wallet')">钱包</el-button>
+            <el-button type="text" @click="handleContactSupport" style="color: #67c23a">联系客服</el-button>
           </template>
         </template>
       </nav>
@@ -82,6 +83,7 @@ import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import store from '../store'
+import { contactSupport } from '../api/chat'
 
 const router = useRouter()
 const route = useRoute()
@@ -142,6 +144,15 @@ const handleLogout = () => {
   store.logout(role)
   ElMessage.success('已退出登录')
   router.push('/')
+}
+
+const handleContactSupport = async () => {
+  try {
+    await contactSupport()
+    router.push('/customer/chat')
+  } catch (error) {
+    ElMessage.error(error.response?.data?.detail || '联系客服失败')
+  }
 }
 </script>
 

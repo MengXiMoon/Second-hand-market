@@ -25,3 +25,11 @@ export const uploadChatImage = (file) => {
     }
   })
 }
+
+export const broadcast = (content) => {
+  return api.post('/chat/broadcast', null, { params: { content } })
+}
+
+export const contactSupport = () => {
+  return api.post('/chat/support', null)
+}
