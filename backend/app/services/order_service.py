@@ -34,6 +34,11 @@ def place_order(
     if product.merchant_id == current_user.id:
         raise HTTPException(status_code=400, detail="不能购买自己发布的商品")
 
+    # 下单即扣库存（防止超卖）
+    product.stock -= 1
+    if product.stock == 0:
+        product.status = ProductStatus.SOLD_OUT
+
     order = Order(
         buyer_id=current_user.id,
         product_id=product.id,
@@ -97,28 +102,22 @@ def pay_order(
     db.commit()
     db.refresh(order)
 
-    # 扣库存
+    # 自动创建对话 + 通知
     product = db.query(Product).filter(Product.id == order.product_id).first()
     if product:
-        product.stock -= 1
-        if product.stock == 0:
-            product.status = ProductStatus.SOLD_OUT
-        db.commit()
+        conv = find_or_create_conversation(db, current_user.id, product.merchant_id)
+        create_message(
+            db, conv.id, current_user.id,
+            f"我已付款购买商品「{product.name}」(订单号: {order.id})",
+            MessageType.TEXT,
+        )
 
-    # 自动创建对话 + 通知
-    conv = find_or_create_conversation(db, current_user.id, product.merchant_id)
-    create_message(
-        db, conv.id, current_user.id,
-        f"我已付款购买商品「{product.name}」(订单号: {order.id})",
-        MessageType.TEXT,
-    )
-
-    background_tasks.add_task(
-        manager.send_personal_message,
-        {"type": "new_order", "message": f"买家已付款！商品：{product.name}",
-         "data": {"order_id": order.id}},
-        product.merchant_id,
-    )
+        background_tasks.add_task(
+            manager.send_personal_message,
+            {"type": "new_order", "message": f"买家已付款！商品：{product.name}",
+             "data": {"order_id": order.id}},
+            product.merchant_id,
+        )
 
     return order
 
@@ -243,12 +242,13 @@ def cancel_order(
                 type=TransactionType.REFUND,
                 description=f"订单 #{order.id} 退款",
             ))
-        # 恢复库存
-        product = db.query(Product).filter(Product.id == order.product_id).first()
-        if product:
-            product.stock += 1
-            if product.status == ProductStatus.SOLD_OUT:
-                product.status = ProductStatus.APPROVED
+
+    # 取消后恢复库存（下单时已扣，取消时退回）
+    product = db.query(Product).filter(Product.id == order.product_id).first()
+    if product:
+        product.stock += 1
+        if product.status == ProductStatus.SOLD_OUT:
+            product.status = ProductStatus.APPROVED
 
     order.status = OrderStatus.CANCELLED
     db.commit()
