@@ -63,6 +63,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getMyOrders, payOrder, completeOrder, cancelOrder } from '../api/orders'
+import { getWallet } from '../api/wallet'
 import Layout from '../components/Layout.vue'
 import { formatDateTime, formatMoney } from '../utils/format'
 import { getOrderStatusText, getOrderStatusType } from '../utils/status'
@@ -89,9 +90,28 @@ const payingAll = ref(false)
 const handlePayAll = async () => {
   const list = unpaidOrders.value
   if (list.length === 0) return
+
+  // 先查余额
+  let balance = 0
+  try {
+    const { data } = await getWallet()
+    balance = data.balance
+  } catch (e) {
+    ElMessage.error('无法获取钱包余额')
+    return
+  }
+
+  const total = unpaidTotal.value
+  if (balance < total) {
+    ElMessage.warning(
+      `余额不足！需要 ¥${formatMoney(total)}，当前余额 ¥${formatMoney(balance)}，还差 ¥${formatMoney(total - balance)}`
+    )
+    return
+  }
+
   try {
     await ElMessageBox.confirm(
-      `确认支付 ${list.length} 笔订单，合计 ¥${formatMoney(unpaidTotal.value)}？`,
+      `确认支付 ${list.length} 笔订单，合计 ¥${formatMoney(total)}？当前余额 ¥${formatMoney(balance)}`,
       '一键付款'
     )
     payingAll.value = true
@@ -101,13 +121,17 @@ const handlePayAll = async () => {
         await payOrder(order.id)
         paid++
       } catch (e) {
-        // 某笔付款失败则跳过，继续付剩下的
+        const detail = e.response?.data?.detail || '付款失败'
+        ElMessage.error(`订单 #${order.id} 付款失败：${detail}`)
+        break // 余额不足则剩余也付不了
       }
     }
-    ElMessage.success(`已付款 ${paid} / ${list.length} 笔`)
+    if (paid > 0) {
+      ElMessage.success(`已付款 ${paid} / ${list.length} 笔`)
+    }
     loadOrders()
   } catch (error) {
-    if (error !== 'cancel') { /* 用户取消 */ }
+    /* 用户取消 */
   } finally {
     payingAll.value = false
   }
@@ -120,7 +144,9 @@ const handlePay = async (order) => {
     ElMessage.success('付款成功')
     loadOrders()
   } catch (error) {
-    if (error !== 'cancel') ElMessage.error(error.response?.data?.detail || '付款失败')
+    if (error !== 'cancel' && error !== 'close') {
+      ElMessage.error(error.response?.data?.detail || '付款失败')
+    }
   }
 }
 
