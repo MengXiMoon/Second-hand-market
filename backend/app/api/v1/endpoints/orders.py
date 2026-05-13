@@ -131,11 +131,25 @@ def get_cart(
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """获取我的购物车"""
-    items = db.query(ShoppingCart).filter(
+    """获取我的购物车（自动合并同商品的重复行）"""
+    rows = db.query(ShoppingCart).filter(
         ShoppingCart.user_id == current_user.id
     ).order_by(ShoppingCart.created_at).all()
+
+    # 合并同一商品的重复行
+    seen = {}
+    for r in rows:
+        if r.product_id in seen:
+            seen[r.product_id].quantity += r.quantity
+            db.delete(r)
+        else:
+            seen[r.product_id] = r
+    db.commit()
+
+    items = list(seen.values())
+    # Refresh items that were modified
     for item in items:
+        db.refresh(item)
         _ = item.product
     return items
 
@@ -147,33 +161,42 @@ def add_to_cart(
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """加入购物车（同一商品去重累加数量，不超过库存上限）"""
+    from sqlalchemy import func
+
     product = db.query(Product).filter(Product.id == cart_in.product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="商品不存在")
 
-    existing = db.query(ShoppingCart).filter(
+    # 查询该商品所有购物车行（可能有历史遗留的重复行）
+    rows = db.query(ShoppingCart).filter(
         ShoppingCart.user_id == current_user.id,
         ShoppingCart.product_id == cart_in.product_id,
-    ).first()
+    ).all()
 
-    total_qty = (existing.quantity if existing else 0) + cart_in.quantity
-    if total_qty > product.stock:
-        total_qty = product.stock
-        if existing and existing.quantity >= product.stock:
+    # 汇总已有数量
+    existing_total = sum(r.quantity for r in rows)
+    new_total = existing_total + cart_in.quantity
+    if new_total > product.stock:
+        new_total = product.stock
+        if existing_total >= product.stock:
             raise HTTPException(status_code=400, detail=f"已达到库存上限 ({product.stock} 件)")
 
-    if existing:
-        existing.quantity = total_qty
+    # 合并为一行：保留第一条，删除其余
+    first = rows[0] if rows else None
+    for extra in rows[1:]:
+        db.delete(extra)
+
+    if first:
+        first.quantity = new_total
         db.commit()
-        db.refresh(existing)
-        _ = existing.product
-        return existing
+        db.refresh(first)
+        _ = first.product
+        return first
 
     item = ShoppingCart(
         user_id=current_user.id,
         product_id=cart_in.product_id,
-        quantity=total_qty,
-    )
+        quantity=new_total,
     db.add(item)
     db.commit()
     db.refresh(item)
