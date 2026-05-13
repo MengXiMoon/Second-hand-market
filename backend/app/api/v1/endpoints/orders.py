@@ -242,8 +242,10 @@ def cart_checkout(
     if not cart_items:
         raise HTTPException(status_code=400, detail="购物车中没有选中的商品")
 
+    # 第一步：逐项生成订单（不提交、不删购物车）
     orders = []
     failed = []
+    success_ids = []
     for item in cart_items:
         try:
             order = order_service.place_order(
@@ -252,7 +254,7 @@ def cart_checkout(
                 auto_commit=False,
             )
             orders.append(order)
-            db.delete(item)
+            success_ids.append(item.id)
         except HTTPException as e:
             failed.append(f"#{item.product_id}: {e.detail}")
 
@@ -260,7 +262,13 @@ def cart_checkout(
         db.rollback()
         raise HTTPException(status_code=400, detail=f"全部失败：{'；'.join(failed)}")
 
+    # 第二步：统一提交订单 + 删除购物车项
+    for item_id in success_ids:
+        it = db.query(ShoppingCart).filter(ShoppingCart.id == item_id).first()
+        if it:
+            db.delete(it)
     db.commit()
+
     for order in orders:
         db.refresh(order)
 
