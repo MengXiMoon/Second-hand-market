@@ -146,13 +146,24 @@ def add_to_cart(
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
-    """加入购物车（同一商品去重累加数量）"""
+    """加入购物车（同一商品去重累加数量，不超过库存上限）"""
+    product = db.query(Product).filter(Product.id == cart_in.product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="商品不存在")
+
     existing = db.query(ShoppingCart).filter(
         ShoppingCart.user_id == current_user.id,
         ShoppingCart.product_id == cart_in.product_id,
     ).first()
+
+    total_qty = (existing.quantity if existing else 0) + cart_in.quantity
+    if total_qty > product.stock:
+        total_qty = product.stock
+        if existing and existing.quantity >= product.stock:
+            raise HTTPException(status_code=400, detail=f"已达到库存上限 ({product.stock} 件)")
+
     if existing:
-        existing.quantity += cart_in.quantity
+        existing.quantity = total_qty
         db.commit()
         db.refresh(existing)
         _ = existing.product
@@ -161,7 +172,7 @@ def add_to_cart(
     item = ShoppingCart(
         user_id=current_user.id,
         product_id=cart_in.product_id,
-        quantity=cart_in.quantity,
+        quantity=total_qty,
     )
     db.add(item)
     db.commit()
@@ -232,13 +243,22 @@ def cart_checkout(
         raise HTTPException(status_code=400, detail="购物车中没有选中的商品")
 
     orders = []
+    failed = []
     for item in cart_items:
-        order = order_service.place_order(
-            db=db, product_id=item.product_id,
-            current_user=current_user, background_tasks=background_tasks,
-        )
-        orders.append(order)
-        db.delete(item)
+        try:
+            order = order_service.place_order(
+                db=db, product_id=item.product_id,
+                current_user=current_user, background_tasks=background_tasks,
+            )
+            orders.append(order)
+            db.delete(item)
+        except HTTPException as e:
+            failed.append(f"#{item.product_id}: {e.detail}")
 
     db.commit()
+    if failed:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{len(orders)} 笔下单成功，{len(failed)} 笔失败：{'；'.join(failed)}"
+        )
     return orders
