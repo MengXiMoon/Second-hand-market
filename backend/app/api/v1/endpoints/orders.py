@@ -197,6 +197,7 @@ def add_to_cart(
         user_id=current_user.id,
         product_id=cart_in.product_id,
         quantity=new_total,
+    )
     db.add(item)
     db.commit()
     db.refresh(item)
