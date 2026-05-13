@@ -41,6 +41,12 @@ const routes = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/customer/cart',
+    name: 'CustomerCart',
+    component: () => import('../views/Cart.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/customer/orders',
     name: 'CustomerOrders',
     component: () => import('../views/Orders.vue'),

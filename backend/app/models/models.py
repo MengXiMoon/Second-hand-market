@@ -72,9 +72,25 @@ class Order(Base):
     product_id = Column(Integer, ForeignKey("products.id"), index=True)
     total_price = Column(Integer)  # Price in cents
     status = Column(Enum(OrderStatus), default=OrderStatus.ORDERED)
+    tracking_number = Column(String, nullable=True)
+    paid_at = Column(DateTime, nullable=True)
+    shipped_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=get_beijing_time)
 
     buyer = relationship("User", back_populates="orders")
+    product = relationship("Product")
+
+
+class ShoppingCart(Base):
+    __tablename__ = "shopping_cart"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), index=True)
+    quantity = Column(Integer, default=1)
+    created_at = Column(DateTime, default=get_beijing_time)
+
     product = relationship("Product")
 
 class Wallet(Base):

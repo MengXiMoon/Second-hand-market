@@ -34,6 +34,7 @@
           <el-button type="text" @click="$router.push('/customer/products')">商品列表</el-button>
           <el-button v-if="!userSession.token" type="text" @click="$router.push('/merchant/login')" style="color: #e6a23c">商家入驻</el-button>
           <template v-if="userSession.token">
+            <el-button type="text" @click="$router.push('/customer/cart')">购物车</el-button>
             <el-button type="text" @click="$router.push('/customer/chat')">消息</el-button>
             <el-button type="text" @click="$router.push('/customer/orders')">我的订单</el-button>
             <el-button type="text" @click="$router.push('/customer/wallet')">钱包</el-button>

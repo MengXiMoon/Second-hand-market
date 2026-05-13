@@ -2,19 +2,42 @@
   <Layout>
     <div class="orders">
       <h2>我的订单</h2>
-      
+
       <el-table :data="orders" v-loading="loading" style="width: 100%">
-        <el-table-column prop="id" label="订单ID" width="100" />
-        <el-table-column prop="product_id" label="商品ID" width="100" />
-        <el-table-column prop="total_price" label="金额" min-width="120">
+        <el-table-column prop="id" label="订单ID" width="80" />
+        <el-table-column prop="product_id" label="商品ID" width="80" />
+        <el-table-column prop="total_price" label="金额" width="100">
           <template #default="{ row }">¥{{ formatMoney(row.total_price) }}</template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" min-width="120">
+        <el-table-column prop="status" label="状态" width="110">
           <template #default="{ row }">
             <el-tag :type="getOrderStatusType(row.status)">{{ getOrderStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" min-width="180">
+        <el-table-column label="操作" min-width="240">
+          <template #default="{ row }">
+            <div class="action-buttons">
+              <el-button
+                v-if="row.status === 'ordered'"
+                type="success" size="small"
+                @click="handlePay(row)">付款</el-button>
+              <el-button
+                v-if="row.status === 'paid'"
+                type="warning" size="small"
+                @click="handleCancel(row)">申请退款</el-button>
+              <el-button
+                v-if="row.status === 'shipped'"
+                type="primary" size="small"
+                @click="handleComplete(row)">确认收货</el-button>
+              <el-button
+                v-if="row.status === 'ordered'"
+                type="danger" size="small"
+                @click="handleCancel(row)">取消订单</el-button>
+              <span v-if="row.tracking_number" class="tracking">物流: {{ row.tracking_number }}</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="时间" width="170">
           <template #default="{ row }">
             {{ formatDateTime(row.created_at) }}
           </template>
@@ -28,8 +51,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { getMyOrders } from '../api/orders'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getMyOrders, payOrder, completeOrder, cancelOrder } from '../api/orders'
 import Layout from '../components/Layout.vue'
 import { formatDateTime, formatMoney } from '../utils/format'
 import { getOrderStatusText, getOrderStatusType } from '../utils/status'
@@ -49,13 +72,59 @@ const loadOrders = async () => {
   }
 }
 
+const handlePay = async (order) => {
+  try {
+    await ElMessageBox.confirm(`确认支付 ¥${formatMoney(order.total_price)}？`, '付款确认')
+    await payOrder(order.id)
+    ElMessage.success('付款成功')
+    loadOrders()
+  } catch (error) {
+    if (error !== 'cancel') ElMessage.error(error.response?.data?.detail || '付款失败')
+  }
+}
+
+const handleComplete = async (order) => {
+  try {
+    await ElMessageBox.confirm('确认已收到商品？确认后资金将结算给商家。', '确认收货')
+    await completeOrder(order.id)
+    ElMessage.success('已确认收货')
+    loadOrders()
+  } catch (error) {
+    if (error !== 'cancel') ElMessage.error(error.response?.data?.detail || '操作失败')
+  }
+}
+
+const handleCancel = async (order) => {
+  const isRefund = order.status === 'paid'
+  const msg = isRefund ? '确认申请退款？已付金额将退回钱包。' : '确认取消此订单？'
+  try {
+    await ElMessageBox.confirm(msg, isRefund ? '申请退款' : '取消订单')
+    await cancelOrder(order.id)
+    ElMessage.success(isRefund ? '已退款' : '已取消')
+    loadOrders()
+  } catch (error) {
+    if (error !== 'cancel') ElMessage.error(error.response?.data?.detail || '操作失败')
+  }
+}
+
 onMounted(() => {
   loadOrders()
+  window.addEventListener('refresh-data', loadOrders)
 })
 </script>
 
 <style scoped>
 .orders h2 {
   margin-bottom: 24px;
+}
+.action-buttons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.tracking {
+  font-size: 12px;
+  color: #909399;
+  margin-left: 4px;
 }
 </style>

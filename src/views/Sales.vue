@@ -10,12 +10,22 @@
         <el-table-column prop="total_price" label="金额" min-width="120">
           <template #default="{ row }">¥{{ formatMoney(row.total_price) }}</template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" min-width="120">
+        <el-table-column prop="status" label="状态" width="110">
           <template #default="{ row }">
             <el-tag :type="getOrderStatusType(row.status)">{{ getOrderStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" min-width="180">
+        <el-table-column label="操作" width="180">
+          <template #default="{ row }">
+            <el-button
+              v-if="row.status === 'paid'"
+              type="primary" size="small"
+              @click="handleShip(row)"
+            >发货</el-button>
+            <span v-if="row.tracking_number" style="font-size:12px;color:#909399">物流: {{ row.tracking_number }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="创建时间" min-width="170">
           <template #default="{ row }">
             {{ formatDateTime(row.created_at) }}
           </template>
@@ -29,8 +39,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { getMySales } from '../api/orders'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getMySales, shipOrder } from '../api/orders'
 import Layout from '../components/Layout.vue'
 import { formatDateTime, formatMoney } from '../utils/format'
 import { getOrderStatusText, getOrderStatusType } from '../utils/status'
@@ -50,8 +60,25 @@ const loadSales = async () => {
   }
 }
 
+const handleShip = async (order) => {
+  try {
+    const { value: tracking } = await ElMessageBox.prompt('请输入物流单号', '发货', {
+      confirmButtonText: '确认发货',
+      inputPlaceholder: '物流单号',
+    })
+    if (tracking) {
+      await shipOrder(order.id, tracking)
+      ElMessage.success('发货成功')
+      loadSales()
+    }
+  } catch (error) {
+    if (error !== 'cancel') ElMessage.error(error.response?.data?.detail || '发货失败')
+  }
+}
+
 onMounted(() => {
   loadSales()
+  window.addEventListener('refresh-data', loadSales)
 })
 </script>
 

@@ -37,19 +37,29 @@
                   <span class="stock">库存: {{ product.stock }}</span>
                 </div>
                 <div class="product-actions" style="display: flex; gap: 8px; margin-top: 12px">
-                  <el-button 
-                    type="primary" 
+                  <el-button
+                    type="primary"
+                    size="small"
                     style="flex: 1"
                     @click="handleBuy(product)"
                     :disabled="!user || product.stock < 1"
                   >
                     {{ !user ? '请先登录' : product.stock < 1 ? '已售罄' : '立即购买' }}
                   </el-button>
-                  <el-button 
+                  <el-button
+                    v-if="user && user.id !== product.merchant_id"
+                    type="warning"
+                    size="small"
+                    plain
+                    @click="handleAddCart(product)"
+                  >
+                    加入购物车
+                  </el-button>
+                  <el-button
                     v-if="user && user.id !== product.merchant_id"
                     type="success"
+                    size="small"
                     plain
-                    style="flex: 1"
                     @click="handleContact(product)"
                   >
                     联系卖家
@@ -71,7 +81,7 @@ import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getProducts } from '../api/products'
-import { createOrder } from '../api/orders'
+import { createOrder, addToCart } from '../api/orders'
 import store from '../store'
 import Layout from '../components/Layout.vue'
 import { getProductStatusText, getProductStatusType } from '../utils/status'
@@ -110,6 +120,15 @@ const loadProducts = async () => {
     ElMessage.error('加载商品失败')
   } finally {
     loading.value = false
+  }
+}
+
+const handleAddCart = async (product) => {
+  try {
+    await addToCart(product.id)
+    ElMessage.success(`「${product.name}」已加入购物车`)
+  } catch (error) {
+    ElMessage.error(error.response?.data?.detail || '加入购物车失败')
   }
 }
 

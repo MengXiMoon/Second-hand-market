@@ -81,9 +81,35 @@ class OrderCreate(OrderBase):
 class Order(OrderBase):
     id: int
     buyer_id: int
-    total_price: int  # Price in cents
+    total_price: int
     status: OrderStatus
+    tracking_number: Optional[str] = None
+    paid_at: Optional[datetime] = None
+    shipped_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+# ShoppingCart schemas
+class CartItemCreate(BaseModel):
+    product_id: int
+    quantity: int = 1
+
+class CartItemUpdate(BaseModel):
+    quantity: int
+
+class CartItem(BaseModel):
+    id: int
+    user_id: int
+    product_id: int
+    quantity: int
+    created_at: datetime
+    product: Optional[Product] = None
+
+    class Config:
+        from_attributes = True
+
+class CartCheckout(BaseModel):
+    item_ids: List[int]  # cart item ids to checkout
