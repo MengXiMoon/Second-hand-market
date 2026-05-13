@@ -1,7 +1,17 @@
 <template>
   <Layout>
     <div class="orders">
+    <div class="orders-header">
       <h2>我的订单</h2>
+      <el-button
+        v-if="unpaidOrders.length > 0"
+        type="success"
+        @click="handlePayAll"
+        :loading="payingAll"
+      >
+        一键付款 ({{ unpaidOrders.length }} 笔，合计 ¥{{ formatMoney(unpaidTotal) }})
+      </el-button>
+    </div>
 
       <el-table :data="orders" v-loading="loading" style="width: 100%">
         <el-table-column prop="id" label="订单ID" width="80" />
@@ -50,7 +60,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getMyOrders, payOrder, completeOrder, cancelOrder } from '../api/orders'
 import Layout from '../components/Layout.vue'
@@ -69,6 +79,37 @@ const loadOrders = async () => {
     ElMessage.error('加载订单失败')
   } finally {
     loading.value = false
+  }
+}
+
+const unpaidOrders = computed(() => orders.value.filter(o => o.status === 'ordered'))
+const unpaidTotal = computed(() => unpaidOrders.value.reduce((sum, o) => sum + o.total_price, 0))
+const payingAll = ref(false)
+
+const handlePayAll = async () => {
+  const list = unpaidOrders.value
+  if (list.length === 0) return
+  try {
+    await ElMessageBox.confirm(
+      `确认支付 ${list.length} 笔订单，合计 ¥${formatMoney(unpaidTotal.value)}？`,
+      '一键付款'
+    )
+    payingAll.value = true
+    let paid = 0
+    for (const order of list) {
+      try {
+        await payOrder(order.id)
+        paid++
+      } catch (e) {
+        // 某笔付款失败则跳过，继续付剩下的
+      }
+    }
+    ElMessage.success(`已付款 ${paid} / ${list.length} 笔`)
+    loadOrders()
+  } catch (error) {
+    if (error !== 'cancel') { /* 用户取消 */ }
+  } finally {
+    payingAll.value = false
   }
 }
 
@@ -114,8 +155,14 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.orders h2 {
-  margin-bottom: 24px;
+.orders-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.orders-header h2 {
+  margin: 0;
 }
 .action-buttons {
   display: flex;
