@@ -22,6 +22,7 @@ def place_order(
     product_id: int,
     current_user: User,
     background_tasks: BackgroundTasks,
+    auto_commit: bool = True,
 ) -> Order:
     """下单：仅创建订单，状态=ordered，不扣款"""
     product = db.query(Product).filter(Product.id == product_id).first()
@@ -46,8 +47,9 @@ def place_order(
         status=OrderStatus.ORDERED,
     )
     db.add(order)
-    db.commit()
-    db.refresh(order)
+    if auto_commit:
+        db.commit()
+        db.refresh(order)
 
     # 通知商家
     background_tasks.add_task(

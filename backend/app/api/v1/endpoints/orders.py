@@ -249,16 +249,24 @@ def cart_checkout(
             order = order_service.place_order(
                 db=db, product_id=item.product_id,
                 current_user=current_user, background_tasks=background_tasks,
+                auto_commit=False,
             )
             orders.append(order)
             db.delete(item)
         except HTTPException as e:
             failed.append(f"#{item.product_id}: {e.detail}")
 
+    if not orders:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"全部失败：{'；'.join(failed)}")
+
     db.commit()
+    for order in orders:
+        db.refresh(order)
+
     if failed:
         raise HTTPException(
             status_code=400,
-            detail=f"{len(orders)} 笔下单成功，{len(failed)} 笔失败：{'；'.join(failed)}"
+            detail=f"{len(orders)} 笔下単成功，{len(failed)} 笔失败：{'；'.join(failed)}"
         )
     return orders
