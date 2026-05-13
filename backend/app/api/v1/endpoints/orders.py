@@ -13,13 +13,14 @@ router = APIRouter()
 
 # ==================== 订单 ====================
 
+
 @router.post("/", response_model=schemas.Order)
 def create_order(
     *,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     order_in: schemas.OrderCreate,
     current_user: User = Depends(deps.get_current_user),
-    background_tasks: BackgroundTasks,
 ) -> Any:
     """下单（状态=ordered，不扣款）"""
     return order_service.place_order(
@@ -31,9 +32,9 @@ def create_order(
 @router.put("/{order_id}/pay", response_model=schemas.Order)
 def pay_order(
     order_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
-    background_tasks: BackgroundTasks,
 ) -> Any:
     """付款（扣钱包，状态→paid，资金托管）"""
     return order_service.pay_order(
@@ -45,10 +46,10 @@ def pay_order(
 @router.put("/{order_id}/ship", response_model=schemas.Order)
 def ship_order(
     order_id: int,
+    background_tasks: BackgroundTasks,
     tracking_number: str = Query(..., description="物流单号"),
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_merchant),
-    background_tasks: BackgroundTasks,
 ) -> Any:
     """卖家发货（状态→shipped）"""
     return order_service.ship_order(
@@ -60,9 +61,9 @@ def ship_order(
 @router.put("/{order_id}/complete", response_model=schemas.Order)
 def complete_order(
     order_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
-    background_tasks: BackgroundTasks,
 ) -> Any:
     """确认收货（状态→completed，结算给商家）"""
     return order_service.complete_order(
@@ -74,9 +75,9 @@ def complete_order(
 @router.put("/{order_id}/cancel", response_model=schemas.Order)
 def cancel_order(
     order_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
-    background_tasks: BackgroundTasks,
 ) -> Any:
     """取消订单/退款"""
     return order_service.cancel_order(
@@ -124,6 +125,7 @@ def read_all_orders(
 
 # ==================== 购物车 ====================
 
+
 @router.get("/cart", response_model=List[schemas.CartItem])
 def get_cart(
     db: Session = Depends(get_db),
@@ -134,7 +136,7 @@ def get_cart(
         ShoppingCart.user_id == current_user.id
     ).order_by(ShoppingCart.created_at).all()
     for item in items:
-        _ = item.product  # 预加载
+        _ = item.product
     return items
 
 
@@ -211,10 +213,11 @@ def remove_cart_item(
 
 @router.post("/cart/checkout", response_model=List[schemas.Order])
 def cart_checkout(
+    *,
+    background_tasks: BackgroundTasks,
     checkout: schemas.CartCheckout,
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
-    background_tasks: BackgroundTasks,
 ) -> Any:
     """购物车批量结算：勾选的商品一键生成多笔订单"""
     if not checkout.item_ids:
