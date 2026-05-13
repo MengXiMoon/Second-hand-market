@@ -266,28 +266,35 @@ def cart_checkout(
     if not cart_items:
         raise HTTPException(status_code=400, detail="购物车中没有选中的商品")
 
-    # 第一步：逐项生成订单（不提交、不删购物车）
+    # 第一步：按数量逐份生成订单（quantity=5 则生成 5 笔订单）
     orders = []
     failed = []
-    success_ids = []
+    to_delete_ids = []
     for item in cart_items:
-        try:
-            order = order_service.place_order(
-                db=db, product_id=item.product_id,
-                current_user=current_user, background_tasks=background_tasks,
-                auto_commit=False,
-            )
-            orders.append(order)
-            success_ids.append(item.id)
-        except HTTPException as e:
-            failed.append(f"#{item.product_id}: {e.detail}")
+        succeeded = 0
+        for _ in range(item.quantity):
+            try:
+                order = order_service.place_order(
+                    db=db, product_id=item.product_id,
+                    current_user=current_user, background_tasks=background_tasks,
+                    auto_commit=False,
+                )
+                orders.append(order)
+                succeeded += 1
+            except HTTPException as e:
+                failed.append(f"商品#{item.product_id}: {e.detail}")
+                break  # 该商品库存耗尽，剩余也必然失败
+        if succeeded > 0:
+            item.quantity -= succeeded
+            if item.quantity <= 0:
+                to_delete_ids.append(item.id)
 
     if not orders:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"全部失败：{'；'.join(failed)}")
 
-    # 第二步：统一提交订单 + 删除购物车项
-    for item_id in success_ids:
+    # 第二步：统一提交订单 + 删除已清空的购物车项
+    for item_id in to_delete_ids:
         it = db.query(ShoppingCart).filter(ShoppingCart.id == item_id).first()
         if it:
             db.delete(it)
