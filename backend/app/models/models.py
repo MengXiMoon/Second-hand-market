@@ -56,6 +56,7 @@ class Product(Base):
     description = Column(String)
     price = Column(Integer)  # Price in cents (e.g., 10000 = 100.00 yuan)
     stock = Column(Integer, default=1)
+    image_url = Column(String, nullable=True)
     status = Column(Enum(ProductStatus), default=ProductStatus.PENDING)
     merchant_id = Column(Integer, ForeignKey("users.id"), index=True)
     audit_remark = Column(String, nullable=True)

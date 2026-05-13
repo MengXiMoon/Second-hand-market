@@ -26,7 +26,8 @@
           <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="product in products" :key="product.id">
             <el-card class="product-card" :body-style="{ padding: '0px' }">
               <div class="product-image">
-                <el-icon :size="60"><Goods /></el-icon>
+                <img v-if="product.image_url" :src="getImageUrl(product.image_url)" class="product-img" />
+                <el-icon v-else :size="60"><Goods /></el-icon>
               </div>
               <div class="product-info">
                 <h3>{{ product.name }}</h3>
@@ -77,6 +78,14 @@ import { getProductStatusText, getProductStatusType } from '../utils/status'
 import { formatMoney } from '../utils/format'
 
 const router = useRouter()
+
+const staticBaseUrl = import.meta.env.VITE_STATIC_BASE_URL || ''
+
+const getImageUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  return `${staticBaseUrl}${url}`
+}
 
 const loading = ref(false)
 const products = ref([])
@@ -162,6 +171,13 @@ onUnmounted(() => {
   justify-content: center;
   background: #f5f7fa;
   color: #909399;
+  overflow: hidden;
+}
+
+.product-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .product-info {

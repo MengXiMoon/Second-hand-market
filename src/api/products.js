@@ -27,3 +27,11 @@ export const updateProduct = (productId, productData) => {
 export const updateProductStatus = (productId, status) => {
   return api.put(`/products/${productId}/status`, null, { params: { status } })
 }
+
+export const uploadProductImage = (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return api.post('/products/upload-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}

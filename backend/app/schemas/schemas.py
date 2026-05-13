@@ -56,6 +56,7 @@ class ProductBase(BaseModel):
     description: str
     price: int  # Price in cents (e.g., 10000 = 100.00 yuan)
     stock: int = 1
+    image_url: Optional[str] = None
 
 class ProductCreate(ProductBase):
     pass

@@ -73,6 +73,21 @@
               placeholder="请输入商品描述" 
             />
           </el-form-item>
+          <el-form-item label="商品图片">
+            <el-upload
+              class="product-image-upload"
+              :action="uploadAction"
+              :headers="uploadHeaders"
+              :show-file-list="false"
+              :on-success="handleImageSuccess"
+              :on-error="handleImageError"
+              :before-upload="beforeImageUpload"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+            >
+              <img v-if="productForm.image_url" :src="getImageUrl(productForm.image_url)" class="upload-preview" />
+              <el-icon v-else class="upload-icon"><Plus /></el-icon>
+            </el-upload>
+          </el-form-item>
           <el-form-item label="价格 (元)" prop="price">
             <el-input-number v-model="productForm.price" :min="0.01" :precision="2" style="width: 100%" />
           </el-form-item>
@@ -100,13 +115,22 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { InfoFilled, Plus } from '@element-plus/icons-vue'
-import { getMyProducts, createProduct, updateProduct, updateProductStatus } from '../api/products'
+import { getMyProducts, createProduct, updateProduct, updateProductStatus, uploadProductImage } from '../api/products'
 import Layout from '../components/Layout.vue'
 import { getProductStatusText, getProductStatusType } from '../utils/status'
 import { formatMoney, toCents } from '../utils/format'
+import store from '../store'
+
+const staticBaseUrl = import.meta.env.VITE_STATIC_BASE_URL || ''
+
+const getImageUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  return `${staticBaseUrl}${url}`
+}
 
 const loading = ref(false)
 const saving = ref(false)
@@ -120,7 +144,18 @@ const productForm = reactive({
   name: '',
   description: '',
   price: 0,
-  stock: 1
+  stock: 1,
+  image_url: ''
+})
+
+const uploadAction = computed(() => {
+  const baseURL = import.meta.env.VITE_API_BASE_URL || '/v1'
+  return `${baseURL}/products/upload-image`
+})
+
+const uploadHeaders = computed(() => {
+  const token = store.getAuthToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
 })
 
 const productRules = {
@@ -149,9 +184,34 @@ const handleEdit = (product) => {
     name: product.name,
     description: product.description,
     price: product.price / 100,  // Convert cents → yuan for display
-    stock: product.stock
+    stock: product.stock,
+    image_url: product.image_url || ''
   })
   showAddDialog.value = true
+}
+
+const beforeImageUpload = (file) => {
+  const isImage = file.type.startsWith('image/')
+  const isLt5M = file.size / 1024 / 1024 < 5
+
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件')
+    return false
+  }
+  if (!isLt5M) {
+    ElMessage.error('图片大小不能超过 5MB')
+    return false
+  }
+  return true
+}
+
+const handleImageSuccess = (response) => {
+  productForm.image_url = response.image_url
+  ElMessage.success('图片上传成功')
+}
+
+const handleImageError = () => {
+  ElMessage.error('图片上传失败')
 }
 
 const handleSubmit = async () => {
@@ -187,7 +247,7 @@ const handleSubmit = async () => {
 const resetForm = () => {
   isEdit.value = false
   currentProduct.value = null
-  Object.assign(productForm, { name: '', description: '', price: 0, stock: 1 })
+  Object.assign(productForm, { name: '', description: '', price: 0, stock: 1, image_url: '' })
 }
 
 watch(showAddDialog, (val) => {
@@ -224,5 +284,33 @@ onUnmounted(() => {
 
 .header h2 {
   margin: 0;
+}
+
+.product-image-upload :deep(.el-upload) {
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  width: 148px;
+  height: 148px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.3s;
+}
+
+.product-image-upload :deep(.el-upload:hover) {
+  border-color: #409eff;
+}
+
+.upload-icon {
+  font-size: 28px;
+  color: #8c939d;
+}
+
+.upload-preview {
+  width: 148px;
+  height: 148px;
+  object-fit: cover;
+  border-radius: 6px;
 }
 </style>

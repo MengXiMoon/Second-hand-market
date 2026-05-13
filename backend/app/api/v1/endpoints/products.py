@@ -1,5 +1,7 @@
 from typing import Any, List
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+import os
+import uuid
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, UploadFile, File
 from sqlalchemy.orm import Session
 
 from app.api import deps
@@ -8,6 +10,7 @@ from app.schemas import schemas
 from app.db.session import get_db
 from app.core.websocket_manager import manager
 from app.services.chat_service import find_or_create_conversation, create_message
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -155,3 +158,26 @@ def update_product_status(
     db.commit()
     db.refresh(product)
     return product
+
+@router.post("/upload-image")
+def upload_product_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(deps.get_current_merchant),
+) -> Any:
+    """Upload a product image (Merchant only)."""
+    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="仅支持 JPG、PNG、GIF、WebP 格式的图片")
+
+    ext = os.path.splitext(file.filename)[1] if file.filename else ".jpg"
+    if ext.lower() not in [".jpg", ".jpeg", ".png", ".gif", ".webp"]:
+        ext = ".jpg"
+
+    filename = f"{uuid.uuid4().hex}{ext}"
+    file_path = os.path.join(settings.UPLOAD_DIR, filename)
+
+    with open(file_path, "wb") as f:
+        f.write(file.file.read())
+
+    image_url = f"/static/uploads/{filename}"
+    return {"image_url": image_url}
