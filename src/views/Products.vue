@@ -36,7 +36,7 @@
                   <span class="price">¥{{ formatMoney(product.price) }}</span>
                   <span class="stock">库存: {{ product.stock }}</span>
                 </div>
-                <div class="product-actions" style="display: flex; gap: 8px; margin-top: 12px">
+                <div class="product-actions">
                   <el-button
                     type="primary"
                     size="small"
@@ -46,24 +46,28 @@
                   >
                     {{ !user ? '请先登录' : product.stock < 1 ? '已售罄' : '立即购买' }}
                   </el-button>
-                  <el-button
-                    v-if="user && user.id !== product.merchant_id"
-                    type="warning"
-                    size="small"
-                    plain
-                    @click="handleAddCart(product)"
-                  >
-                    加入购物车
-                  </el-button>
-                  <el-button
-                    v-if="user && user.id !== product.merchant_id"
-                    type="success"
-                    size="small"
-                    plain
-                    @click="handleContact(product)"
-                  >
-                    联系卖家
-                  </el-button>
+                  <el-tooltip v-if="user && user.id !== product.merchant_id" content="加入购物车" placement="top">
+                    <el-button
+                      type="warning"
+                      size="small"
+                      circle
+                      plain
+                      @click="handleAddCart(product)"
+                    >
+                      <el-icon><ShoppingCart /></el-icon>
+                    </el-button>
+                  </el-tooltip>
+                  <el-tooltip v-if="user && user.id !== product.merchant_id" content="联系卖家" placement="top">
+                    <el-button
+                      type="success"
+                      size="small"
+                      circle
+                      plain
+                      @click="handleContact(product)"
+                    >
+                      <el-icon><ChatDotRound /></el-icon>
+                    </el-button>
+                  </el-tooltip>
                 </div>
               </div>
             </el-card>
@@ -238,5 +242,12 @@ onUnmounted(() => {
 .stock {
   color: #909399;
   font-size: 12px;
+}
+
+.product-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: center;
 }
 </style>
