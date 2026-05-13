@@ -33,7 +33,10 @@
       <el-dialog v-model="showWithdrawDialog" title="余额提现" width="400px">
         <el-form :model="withdrawForm" label-width="80px">
           <el-form-item label="提现金额 (元)">
-            <el-input-number v-model="withdrawForm.amount" :min="0.01" :max="(wallet?.balance || 0) / 100" :precision="2" :step="100" style="width: 100%" />
+            <el-input-number v-model="withdrawForm.amount" :min="0" :max="(wallet?.balance || 0) / 100" :precision="2" :step="50" style="width: 100%" />
+            <div style="color: #909399; font-size: 12px; margin-top: 4px">
+              可提现余额 ¥{{ formatMoney(wallet?.balance || 0) }}
+            </div>
           </el-form-item>
         </el-form>
         <template #footer>
@@ -87,8 +90,8 @@ const recharging = ref(false)
 const withdrawing = ref(false)
 const showRechargeDialog = ref(false)
 const showWithdrawDialog = ref(false)
-const rechargeForm = ref({ amount: 100 })  // yuan
-const withdrawForm = ref({ amount: 100 })    // yuan
+const rechargeForm = ref({ amount: 100 })
+const withdrawForm = ref({ amount: 0 })
 const wallet = ref(null)
 const transactions = ref([])
 const user = computed(() => store.getCurrentSession().user)
@@ -113,7 +116,7 @@ const handleRecharge = async () => {
     showRechargeDialog.value = false
     loadWallet() // Refresh balance and transaction list
   } catch (error) {
-    ElMessage.error('充值失败，请稍后重试')
+    ElMessage.error(error.response?.data?.detail || '充值失败')
   } finally {
     recharging.value = false
   }
@@ -124,7 +127,7 @@ const handleWithdraw = async () => {
      ElMessage.warning('请输入有效的提现金额')
      return
   }
-  if (toCents(withdrawForm.value.amount) > wallet.value.balance) {
+  if (toCents(withdrawForm.value.amount) > (wallet.value?.balance || 0)) {
      ElMessage.warning('余额不足')
      return
   }
@@ -134,9 +137,9 @@ const handleWithdraw = async () => {
     await withdraw(toCents(withdrawForm.value.amount))
     ElMessage.success('提现成功')
     showWithdrawDialog.value = false
-    loadWallet() // Refresh
+    loadWallet()
   } catch (error) {
-    ElMessage.error('提现失败，请稍后重试')
+    ElMessage.error(error.response?.data?.detail || '提现失败')
   } finally {
     withdrawing.value = false
   }
