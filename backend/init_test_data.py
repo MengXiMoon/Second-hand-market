@@ -202,6 +202,23 @@ def main():
         print("  二手市场 — 测试数据生成器")
         print("=" * 55)
 
+        # 创建管理员账号 (admin / 123)
+        admin = db.query(User).filter(User.username == "admin").first()
+        if not admin:
+            admin = User(
+                username="admin",
+                email="admin@example.com",
+                hashed_password=security.get_password_hash("123"),
+                role=UserRole.ADMIN,
+                is_verified=True,
+            )
+            db.add(admin)
+            db.flush()
+            db.add(Wallet(user_id=admin.id, balance=0))
+            print("\n[管理员] 创建成功: admin / 123")
+        else:
+            print("\n[管理员] 账号已存在: admin")
+
         user_map = create_users(db)
         print(f"\n[用户] 创建/确认 {len(user_map)} 个用户:")
         for uname, u in user_map.items():
@@ -217,8 +234,7 @@ def main():
                 label = {"pending": "待审核", "approved": "已上架", "rejected": "已拒绝", "sold_out": "已售罄"}[s.value]
                 print(f"    {label}: {c} 件")
 
-        print(f"\n[管理员] 账号: admin  密码: (首次启动时打印)")
-        print(f"[管理员端]  访问: http://localhost:5173/admin/login")
+        print(f"\n[管理员]  访问: http://localhost:5173/admin/login")
         print(f"[商家端]    访问: http://localhost:5173/merchant/login")
         print(f"\n所有测试账号密码均为: {PASSWORD}")
         print("=" * 55)
