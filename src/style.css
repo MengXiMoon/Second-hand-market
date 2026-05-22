@@ -1,3 +1,55 @@
+/* 1. Global Reset & Theme Variables */
+:root {
+  /* Premium Primary Palette - Majestic Indigo & Iris Blue */
+  --el-color-primary: #5e5bf5;
+  --el-color-primary-light-3: #8381f8;
+  --el-color-primary-light-5: #9e9dfa;
+  --el-color-primary-light-7: #bbb9fc;
+  --el-color-primary-light-8: #d1cffd;
+  --el-color-primary-light-9: #e7e6fe;
+  --el-color-primary-dark-2: #4340c7;
+
+  /* Sophisticated Status Colors */
+  --el-color-success: #10b981;
+  --el-color-success-light-3: #4ade80;
+  --el-color-success-light-9: #ecfdf5;
+
+  --el-color-warning: #f59e0b;
+  --el-color-warning-light-3: #fbbf24;
+  --el-color-warning-light-9: #fefbeb;
+
+  --el-color-danger: #f43f5e;
+  --el-color-danger-light-3: #fb7185;
+  --el-color-danger-light-9: #fff1f2;
+
+  --el-color-info: #64748b;
+  --el-color-info-light-3: #94a3b8;
+  --el-color-info-light-9: #f8fafc;
+
+  /* Rounded Corner Design System (iOS-inspired smooth curves) */
+  --el-border-radius-base: 14px;
+  --el-border-radius-small: 8px;
+  --el-border-radius-medium: 12px;
+  --el-border-radius-large: 20px;
+  --el-border-radius-round: 30px;
+
+  /* Custom Typography Stack */
+  --el-font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+
+  /* Elevated Shadows */
+  --el-box-shadow-light: 0 4px 20px -2px rgba(94, 91, 245, 0.04), 0 2px 8px -1px rgba(0, 0, 0, 0.02);
+  --el-box-shadow: 0 12px 30px -4px rgba(94, 91, 245, 0.08), 0 4px 12px -2px rgba(94, 91, 245, 0.03);
+  --el-box-shadow-dark: 0 20px 40px -4px rgba(94, 91, 245, 0.12), 0 8px 16px -4px rgba(94, 91, 245, 0.04);
+  --shadow-hover: 0 22px 48px -8px rgba(94, 91, 245, 0.18), 0 8px 20px -4px rgba(0, 0, 0, 0.04);
+
+  /* Modern Background Gradients */
+  --app-bg-gradient: linear-gradient(135deg, #fbfbfe 0%, #f3f4fd 50%, #eaeafd 100%);
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.6);
+  --glass-backdrop-filter: blur(16px) saturate(120%);
+}
+
+/* 2. Global HTML/Body Customization */
 * {
   margin: 0;
   padding: 0;
@@ -6,9 +58,281 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--el-font-family);
+  background: var(--app-bg-gradient);
+  background-attachment: fixed;
+  color: #1e293b;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #app {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 3. Premium Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(243, 244, 253, 0.5);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(94, 91, 245, 0.18);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(94, 91, 245, 0.35);
+}
+
+/* 4. Element Plus Style Enhancements */
+
+/* Buttons: Premium soft transitions and micro-interactions */
+.el-button {
+  font-weight: 500;
+  border-radius: var(--el-border-radius-medium);
+  padding: 10px 20px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.3px;
+}
+
+.el-button--primary {
+  box-shadow: 0 4px 14px 0 rgba(94, 91, 245, 0.3);
+}
+
+.el-button--primary:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 18px 0 rgba(94, 91, 245, 0.45);
+}
+
+.el-button--success {
+  box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.25);
+}
+
+.el-button--success:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 18px 0 rgba(16, 185, 129, 0.4);
+}
+
+.el-button--warning {
+  box-shadow: 0 4px 14px 0 rgba(245, 158, 11, 0.25);
+}
+
+.el-button--warning:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 18px 0 rgba(245, 158, 11, 0.4);
+}
+
+.el-button--danger {
+  box-shadow: 0 4px 14px 0 rgba(244, 63, 94, 0.25);
+}
+
+.el-button--danger:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 18px 0 rgba(244, 63, 94, 0.4);
+}
+
+/* Cards: Premium Glassmorphism by default */
+.el-card {
+  border: var(--glass-border) !important;
+  background: var(--glass-bg) !important;
+  backdrop-filter: var(--glass-backdrop-filter) !important;
+  -webkit-backdrop-filter: var(--glass-backdrop-filter) !important;
+  border-radius: var(--el-border-radius-base) !important;
+  box-shadow: var(--el-box-shadow) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.el-card:hover {
+  box-shadow: var(--shadow-hover) !important;
+}
+
+.el-card__header {
+  border-bottom: 1px solid rgba(94, 91, 245, 0.08) !important;
+  padding: 18px 24px !important;
+}
+
+/* Forms: Sleek Inputs */
+.el-input__wrapper,
+.el-textarea__inner {
+  border-radius: var(--el-border-radius-medium) !important;
+  background-color: rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid rgba(94, 91, 245, 0.1) !important;
+  box-shadow: none !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.el-input__wrapper:hover,
+.el-textarea__inner:hover {
+  border-color: rgba(94, 91, 245, 0.3) !important;
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.el-input__wrapper.is-focus,
+.el-textarea__inner:focus {
+  border-color: var(--el-color-primary) !important;
+  background-color: #fff !important;
+  box-shadow: 0 0 0 3px rgba(94, 91, 245, 0.15) !important;
+}
+
+.el-form-item__label {
+  font-weight: 500 !important;
+  color: #475569 !important;
+}
+
+/* Tables: Sleek Rounded Modern Table style */
+.el-table {
+  background: transparent !important;
+  border-radius: var(--el-border-radius-base);
+  overflow: hidden;
+  box-shadow: var(--el-box-shadow);
+  border: var(--glass-border);
+}
+
+.el-table tr {
+  background-color: rgba(255, 255, 255, 0.6) !important;
+  transition: background-color 0.2s ease;
+}
+
+.el-table th.el-table__cell {
+  background-color: rgba(94, 91, 245, 0.04) !important;
+  color: #475569 !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+.el-table__row:hover>td {
+  background-color: rgba(94, 91, 245, 0.04) !important;
+}
+
+.el-table td.el-table__cell {
+  border-bottom: 1px solid rgba(94, 91, 245, 0.05) !important;
+}
+
+/* Custom modern Pill Tags */
+.el-tag {
+  border-radius: 100px !important;
+  font-weight: 600 !important;
+  padding: 4px 12px !important;
+  font-size: 12px !important;
+  border: none !important;
+  letter-spacing: 0.2px;
+}
+
+.el-tag--success {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  color: #059669 !important;
+}
+
+.el-tag--primary {
+  background-color: rgba(94, 91, 245, 0.1) !important;
+  color: var(--el-color-primary) !important;
+}
+
+.el-tag--warning {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+  color: #d97706 !important;
+}
+
+.el-tag--danger {
+  background-color: rgba(244, 63, 94, 0.12) !important;
+  color: #e11d48 !important;
+}
+
+.el-tag--info {
+  background-color: rgba(100, 116, 139, 0.12) !important;
+  color: #475569 !important;
+}
+
+/* Dialog: Sleek Overlay */
+.el-dialog {
+  border-radius: var(--el-border-radius-large) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: var(--el-box-shadow-dark) !important;
+}
+
+.el-dialog__title {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.5px;
+}
+
+.el-dialog__headerbtn:hover .el-dialog__close {
+  color: var(--el-color-primary) !important;
+}
+
+/* 5. Rich Typography & UI Helpers */
+.premium-title {
+  font-weight: 800;
+  letter-spacing: -1px;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  margin-bottom: 24px;
+}
+
+.premium-gradient-btn {
+  background: linear-gradient(135deg, #5e5bf5 0%, #8b5cf6 100%) !important;
+  border: none !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(94, 91, 245, 0.35) !important;
+}
+
+.premium-gradient-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(94, 91, 245, 0.5) !important;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+}
+
+.sub-gradient-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border: none !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.25) !important;
+}
+
+.sub-gradient-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4) !important;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+}
+
+.status-indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }

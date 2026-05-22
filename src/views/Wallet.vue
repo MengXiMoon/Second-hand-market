@@ -6,9 +6,9 @@
           <el-card class="balance-card">
             <div class="balance-label">钱包余额</div>
             <div class="balance-amount">¥{{ formatMoney(wallet?.balance) }}</div>
-            <div style="margin-top: 20px;">
-              <el-button type="primary" size="large" @click="showRechargeDialog = true">充值</el-button>
-              <el-button type="success" size="large" plain @click="showWithdrawDialog = true">提现</el-button>
+            <div class="btn-container">
+              <el-button size="large" class="wallet-btn-recharge" @click="showRechargeDialog = true">充值余额</el-button>
+              <el-button size="large" class="wallet-btn-withdraw" @click="showWithdrawDialog = true">提取现金</el-button>
             </div>
           </el-card>
         </el-col>
@@ -47,20 +47,22 @@
         </template>
       </el-dialog>
 
-      <h3 style="margin-top: 32px; margin-bottom: 16px;">交易记录</h3>
+      <h3 class="section-title">交易记录</h3>
       
       <el-table :data="displayTransactions" v-loading="loading" style="width: 100%">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="amount" label="金额" min-width="120">
           <template #default="{ row }">
-            <span :style="{ color: row.amount > 0 ? '#67c23a' : '#f56c6c' }">
+            <span :style="{ color: row.amount > 0 ? '#10b981' : '#f43f5e', fontWeight: '700' }">
               {{ row.amount > 0 ? '+' : '' }}{{ formatMoney(Math.abs(row.amount)) }}
             </span>
           </template>
         </el-table-column>
         <el-table-column prop="type" label="类型" min-width="120">
           <template #default="{ row }">
-            {{ getTransactionTypeText(row.type) }}
+            <el-tag :type="getTransactionTagType(row.type)" effect="light">
+              {{ getTransactionTypeText(row.type) }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="description" label="描述" min-width="200" />
@@ -78,6 +80,18 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+
+const getTransactionTagType = (type) => {
+  const map = {
+    'recharge': 'success',
+    'purchase': 'danger',
+    'sale': 'primary',
+    'refund': 'warning',
+    'withdraw': 'info',
+    'commission': 'primary'
+  }
+  return map[type] || 'info'
+}
 import { ElMessage } from 'element-plus'
 import { getWallet, getTransactions, selfRecharge, withdraw } from '../api/wallet'
 import store from '../store'
@@ -184,20 +198,105 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.wallet {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 10px 0;
+}
+
 .balance-card {
-  text-align: center;
-  padding: 40px;
+  background: linear-gradient(135deg, #5e5bf5 0%, #7c3aed 50%, #6d28d9 100%) !important;
+  color: white !important;
+  padding: 30px 40px !important;
+  border-radius: 24px !important;
+  border: none !important;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 45px -10px rgba(94, 91, 245, 0.4) !important;
+  margin-bottom: 20px;
+}
+
+.balance-card::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+}
+
+.balance-card::after {
+  content: '';
+  position: absolute;
+  bottom: -30px;
+  left: 20%;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.03);
+  pointer-events: none;
 }
 
 .balance-label {
-  color: #909399;
-  font-size: 16px;
-  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .balance-amount {
-  font-size: 48px;
-  font-weight: 600;
-  color: #409eff;
+  font-size: 52px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -1.5px;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-container {
+  display: flex;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.wallet-btn-recharge {
+  background: #ffffff !important;
+  color: #5e5bf5 !important;
+  border: none !important;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+  font-weight: 700;
+}
+
+.wallet-btn-recharge:hover {
+  transform: translateY(-2px);
+  background: #f8fafc !important;
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+.wallet-btn-withdraw {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  backdrop-filter: blur(8px);
+  font-weight: 700;
+}
+
+.wallet-btn-withdraw:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 8px 16px rgba(94, 91, 245, 0.15) !important;
+}
+
+.section-title {
+  margin-top: 40px;
+  margin-bottom: 20px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.5px;
 }
 </style>

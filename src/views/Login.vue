@@ -151,42 +151,78 @@ const handleLogin = async () => {
 .login {
   display: flex;
   justify-content: center;
-  padding-top: 60px;
+  padding: 80px 20px;
 }
 
 .login-card {
-  width: 400px;
+  width: 420px;
+  border-radius: 24px !important;
+  overflow: hidden;
+}
+
+.login-card :deep(.el-card__header) {
+  background: rgba(94, 91, 245, 0.03);
+  padding: 24px 30px !important;
 }
 
 .login-card h2 {
   margin: 0;
   text-align: center;
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.5px;
 }
 
 .role-selection {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding: 10px 0;
 }
 
 .role-card {
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   text-align: center;
   padding: 20px;
+  border-radius: 16px !important;
+  background: rgba(255, 255, 255, 0.5) !important;
+  border: 1px solid rgba(94, 91, 245, 0.08) !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .role-card:hover {
   transform: translateY(-4px);
+  background: #fff !important;
+  border-color: rgba(94, 91, 245, 0.3) !important;
+  box-shadow: 0 10px 25px -5px rgba(94, 91, 245, 0.15) !important;
 }
 
 .role-card h3 {
-  margin: 12px 0 8px;
-  color: #303133;
+  margin: 12px 0 6px;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 16px;
 }
 
 .role-card p {
-  color: #909399;
-  font-size: 14px;
+  color: #64748b;
+  font-size: 13px;
+  margin-bottom: 0;
+}
+
+.el-form {
+  padding: 10px 10px 0;
+}
+
+.el-form-item {
+  margin-bottom: 24px;
+}
+
+.el-link {
+  font-weight: 600;
 }
 </style>

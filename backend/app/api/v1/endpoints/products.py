@@ -2,7 +2,7 @@ from typing import Any, List
 import os
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, UploadFile, File
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.api import deps
 from app.models.models import Product, ProductStatus, User, UserRole, MessageType
@@ -21,7 +21,7 @@ def read_products(
     limit: int = 100,
 ) -> Any:
     """Retrieve all approved products (Public)."""
-    return db.query(Product).filter(Product.status == ProductStatus.APPROVED).offset(skip).limit(limit).all()
+    return db.query(Product).options(joinedload(Product.merchant)).filter(Product.status == ProductStatus.APPROVED).offset(skip).limit(limit).all()
 
 @router.post("/", response_model=schemas.Product)
 def create_product(
@@ -57,7 +57,7 @@ def read_my_products(
     current_user: User = Depends(deps.get_current_merchant),
 ) -> Any:
     """Retrieve products owned by the current merchant."""
-    return db.query(Product).filter(Product.merchant_id == current_user.id).all()
+    return db.query(Product).options(joinedload(Product.merchant)).filter(Product.merchant_id == current_user.id).all()
 
 @router.get("/pending", response_model=List[schemas.Product])
 def read_pending_products(
@@ -65,7 +65,7 @@ def read_pending_products(
     current_user: User = Depends(deps.get_current_active_admin),
 ) -> Any:
     """List products awaiting audit (Admin only)."""
-    return db.query(Product).filter(Product.status == ProductStatus.PENDING).all()
+    return db.query(Product).options(joinedload(Product.merchant)).filter(Product.status == ProductStatus.PENDING).all()
 
 @router.put("/{product_id}/audit", response_model=schemas.Product)
 def audit_product(

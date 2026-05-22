@@ -159,59 +159,95 @@ const handleContactSupport = async () => {
 
 <style scoped>
 .navbar {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
   padding: 0;
-  height: 64px;
+  height: 70px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  transition: all 0.3s ease;
 }
 
 .navbar-admin {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.9) 0%, rgba(124, 58, 237, 0.95) 100%);
+  border-bottom: 1px solid rgba(124, 58, 237, 0.2);
 }
 
 .navbar-admin .logo {
   color: #fff;
+  text-shadow: 0 2px 10px rgba(79, 70, 229, 0.3);
 }
 
 .navbar-admin .nav-links .el-button {
-  color: #fff;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+  border-radius: 8px;
+  padding: 8px 14px;
 }
 
 .navbar-admin .nav-links .el-button:hover {
-  color: #e0e0e0;
-  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
 }
 
 .navbar-admin .user-info {
-  color: #fff;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
 }
 
 .navbar-merchant {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.9) 0%, rgba(251, 113, 133, 0.95) 100%);
+  border-bottom: 1px solid rgba(244, 63, 94, 0.2);
 }
 
 .navbar-merchant .logo {
   color: #fff;
+  text-shadow: 0 2px 10px rgba(244, 63, 94, 0.3);
 }
 
 .navbar-merchant .nav-links .el-button {
-  color: #fff;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+  border-radius: 8px;
+  padding: 8px 14px;
 }
 
 .navbar-merchant .nav-links .el-button:hover {
-  color: #e0e0e0;
-  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
 }
 
 .navbar-merchant .user-info {
-  color: #fff;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
 }
 
 .navbar-user {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.85);
+  border-bottom: 1px solid rgba(94, 91, 245, 0.08);
 }
 
 .navbar-user .logo {
-  color: #409eff;
+  color: #5e5bf5;
+  font-weight: 800;
+}
+
+.navbar-user .nav-links .el-button {
+  color: #475569;
+  font-weight: 500;
+  border-radius: 8px;
+  padding: 8px 14px;
+}
+
+.navbar-user .nav-links .el-button:hover {
+  color: #5e5bf5;
+  background: rgba(94, 91, 245, 0.05);
+  transform: translateY(-1px);
 }
 
 .navbar-content {
@@ -227,69 +263,85 @@ const handleContactSupport = async () => {
 .logo {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 20px;
-  font-weight: 600;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: 800;
   cursor: pointer;
+  letter-spacing: -0.5px;
+  transition: transform 0.2s ease;
+}
+
+.logo:hover {
+  transform: scale(1.02);
 }
 
 .nav-links {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .user-section {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
 }
 
 .user-info {
   font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
 }
 
 .role-status-bar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .status-chip {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 16px;
-  background: #f5f7fa;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  background: rgba(148, 163, 184, 0.08);
   font-size: 13px;
-  color: #909399;
-  transition: all 0.3s;
+  color: #64748b;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: default;
 }
 
 .status-chip.active {
-  background: #ecf5ff;
-  color: #409eff;
+  background: rgba(94, 91, 245, 0.08);
+  color: #5e5bf5;
+  border: 1px solid rgba(94, 91, 245, 0.15);
+  box-shadow: 0 4px 10px -2px rgba(94, 91, 245, 0.1);
 }
 
 .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #c0c4cc;
-  transition: background 0.3s;
+  background: #cbd5e1;
+  transition: all 0.3s;
 }
 
 .status-chip.active .status-dot {
-  background: #67c23a;
-  box-shadow: 0 0 4px rgba(103, 194, 58, 0.6);
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
 }
 
 .status-text {
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .status-user {
-  font-weight: 600;
-  color: #303133;
+  font-weight: 700;
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 11px;
 }
 </style>

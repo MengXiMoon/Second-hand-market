@@ -64,6 +64,10 @@ class Product(Base):
 
     merchant = relationship("User", back_populates="products")
 
+    @property
+    def merchant_name(self) -> str:
+        return self.merchant.username if self.merchant else ""
+
 class Order(Base):
     __tablename__ = "orders"
 

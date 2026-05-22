@@ -65,6 +65,7 @@ class Product(ProductBase):
     id: int
     status: ProductStatus
     merchant_id: int
+    merchant_name: Optional[str] = None
     audit_remark: Optional[str] = None
     created_at: datetime
 

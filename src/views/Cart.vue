@@ -27,32 +27,33 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="单价" width="100">
-          <template #default="{ row }">¥{{ formatMoney(row.product?.price || 0) }}</template>
+        <el-table-column label="单价" width="110">
+          <template #default="{ row }"><span class="price-text">¥{{ formatMoney(row.product?.price || 0) }}</span></template>
         </el-table-column>
-        <el-table-column label="数量" width="140">
+        <el-table-column label="数量" width="150">
           <template #default="{ row }">
             <el-input-number
               v-model="row.quantity"
               :min="1"
               :max="row.product?.stock || 99"
-              size="small"
+              size="default"
+              style="width: 120px"
               @change="(val) => handleQuantityChange(row, val)"
             />
           </template>
         </el-table-column>
-        <el-table-column label="小计" width="100">
-          <template #default="{ row }">¥{{ formatMoney((row.product?.price || 0) * row.quantity) }}</template>
+        <el-table-column label="小计" width="120">
+          <template #default="{ row }"><span class="subtotal-text">¥{{ formatMoney((row.product?.price || 0) * row.quantity) }}</span></template>
         </el-table-column>
-        <el-table-column label="操作" width="80">
+        <el-table-column label="操作" width="100">
           <template #default="{ row }">
-            <el-button type="danger" size="small" @click="handleRemove(row)">删除</el-button>
+            <el-button type="danger" size="default" plain @click="handleRemove(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
 
-      <el-empty v-if="!loading && cartItems.length === 0" description="购物车是空的">
-        <el-button type="primary" @click="$router.push('/customer/products')">去逛逛</el-button>
+      <el-empty v-if="!loading && cartItems.length === 0" description="您的购物车目前空空如也">
+        <el-button type="primary" size="large" class="premium-gradient-btn" @click="$router.push('/customer/products')">去逛逛商场</el-button>
       </el-empty>
     </div>
   </Layout>
@@ -146,34 +147,82 @@ onMounted(loadCart)
 .cart-page {
   max-width: 1000px;
   margin: 0 auto;
+  padding: 10px 0;
 }
+
 .cart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 }
+
 .cart-header h2 {
   margin: 0;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #0f172a 0%, #5e5bf5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 26px;
 }
+
 .cart-product {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  padding: 6px 0;
 }
+
 .cart-img {
-  width: 60px;
-  height: 60px;
+  width: 70px;
+  height: 70px;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(94, 91, 245, 0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
 }
+
+.cart-product:hover .cart-img {
+  transform: scale(1.05);
+}
+
 .cart-name {
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 700;
+  font-size: 15px;
+  color: #0f172a;
 }
+
 .cart-desc {
   font-size: 12px;
-  color: #909399;
+  color: #64748b;
   margin-top: 4px;
+  line-height: 1.4;
+}
+
+.price-text {
+  font-weight: 600;
+  color: #334155;
+  font-size: 15px;
+}
+
+.subtotal-text {
+  font-weight: 800;
+  color: #f43f5e;
+  font-size: 16px;
+  letter-spacing: -0.3px;
+}
+
+:deep(.el-empty) {
+  padding: 80px 0 !important;
+  background: rgba(255, 255, 255, 0.45) !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04) !important;
+  margin-top: 30px;
 }
 </style>

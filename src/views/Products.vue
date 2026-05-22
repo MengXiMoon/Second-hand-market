@@ -22,16 +22,27 @@
       </template>
       
       <template v-else>
-        <el-row :gutter="20" v-loading="loading">
+        <el-row :gutter="24" v-loading="loading">
           <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="product in products" :key="product.id">
             <el-card class="product-card" :body-style="{ padding: '0px' }">
               <div class="product-image">
                 <img v-if="product.image_url" :src="getImageUrl(product.image_url)" class="product-img" />
-                <el-icon v-else :size="60"><Goods /></el-icon>
+                <div v-else class="placeholder-img-wrapper">
+                  <el-icon :size="50"><Goods /></el-icon>
+                </div>
+                <!-- Fancy premium overlays -->
+                <span class="product-tag-overlay" :class="product.stock > 0 ? 'in-stock' : 'out-of-stock'">
+                  {{ product.stock > 0 ? `有货 (${product.stock})` : '已售罄' }}
+                </span>
               </div>
               <div class="product-info">
                 <h3>{{ product.name }}</h3>
                 <p class="description">{{ product.description }}</p>
+                <div class="product-merchant">
+                  <span class="merchant-icon">👤</span>
+                  <span class="merchant-name-label">商家：</span>
+                  <span class="merchant-name-value">{{ product.merchant_name || `商家 #${product.merchant_id}` }}</span>
+                </div>
                 <div class="product-footer">
                   <span class="price">¥{{ formatMoney(product.price) }}</span>
                   <span class="stock">库存: {{ product.stock }}</span>
@@ -39,8 +50,8 @@
                 <div class="product-actions">
                   <el-button
                     type="primary"
-                    size="small"
-                    style="flex: 1"
+                    size="default"
+                    class="buy-button"
                     @click="handleBuy(product)"
                     :disabled="!user || product.stock < 1"
                   >
@@ -49,7 +60,7 @@
                   <el-tooltip v-if="user && user.id !== product.merchant_id" content="加入购物车" placement="top">
                     <el-button
                       type="warning"
-                      size="small"
+                      size="default"
                       circle
                       plain
                       @click="handleAddCart(product)"
@@ -60,7 +71,7 @@
                   <el-tooltip v-if="user && user.id !== product.merchant_id" content="联系卖家" placement="top">
                     <el-button
                       type="success"
-                      size="small"
+                      size="default"
                       circle
                       plain
                       @click="handleContact(product)"
@@ -173,54 +184,140 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.products {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 10px 0;
+}
+
 .products h2 {
-  margin-bottom: 24px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #0f172a 0%, #5e5bf5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 30px;
+  font-size: 28px;
 }
 
 .product-card {
-  margin-bottom: 20px;
-  cursor: pointer;
-  transition: transform 0.3s;
+  margin-bottom: 24px;
+  border-radius: 18px !important;
+  overflow: hidden;
+  box-shadow: 0 4px 20px -2px rgba(94, 91, 245, 0.04), 0 2px 8px -1px rgba(0, 0, 0, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .product-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-6px);
+  box-shadow: 0 20px 35px -5px rgba(94, 91, 245, 0.15), 0 8px 15px -4px rgba(0, 0, 0, 0.03) !important;
+  border-color: rgba(94, 91, 245, 0.2) !important;
 }
 
 .product-image {
-  height: 160px;
+  height: 180px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f7fa;
-  color: #909399;
+  background: radial-gradient(circle at center, #ffffff 0%, #f1f5f9 100%);
+  color: #94a3b8;
   overflow: hidden;
+  position: relative;
 }
 
 .product-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.product-card:hover .product-img {
+  transform: scale(1.06);
+}
+
+.placeholder-img-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.product-tag-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  z-index: 2;
+  letter-spacing: 0.3px;
+}
+
+.in-stock {
+  background: rgba(16, 185, 129, 0.85) !important;
+  color: white !important;
+}
+
+.out-of-stock {
+  background: rgba(244, 63, 94, 0.85) !important;
+  color: white !important;
+}
+
+.product-merchant {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+  background: rgba(94, 91, 245, 0.04);
+  padding: 4px 10px;
+  border-radius: 8px;
+  width: fit-content;
+}
+
+.merchant-icon {
+  font-size: 12px;
+}
+
+.merchant-name-label {
+  color: #64748b;
+}
+
+.merchant-name-value {
+  color: #5e5bf5;
+  font-weight: 700;
 }
 
 .product-info {
-  padding: 16px;
+  padding: 20px;
 }
 
 .product-info h3 {
-  margin: 0 0 8px;
-  font-size: 16px;
-  color: #303133;
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .description {
-  color: #909399;
-  font-size: 14px;
-  margin-bottom: 12px;
-  height: 40px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  height: 38px;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -231,23 +328,64 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-top: 1px solid rgba(94, 91, 245, 0.05);
+  padding-top: 14px;
 }
 
 .price {
-  color: #f56c6c;
-  font-size: 20px;
-  font-weight: 600;
+  color: #f43f5e;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
 }
 
 .stock {
-  color: #909399;
+  color: #64748b;
   font-size: 12px;
+  font-weight: 600;
+  background: rgba(100, 116, 139, 0.08);
+  padding: 2px 8px;
+  border-radius: 6px;
 }
 
 .product-actions {
   display: flex;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 10px;
+  margin-top: 16px;
   align-items: center;
+}
+
+.buy-button {
+  flex: 1;
+  height: 38px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px !important;
+  font-weight: 600;
+}
+
+.product-actions .el-button--primary {
+  box-shadow: 0 4px 12px rgba(94, 91, 245, 0.25);
+}
+
+.product-actions .el-button--primary:hover {
+  box-shadow: 0 6px 16px rgba(94, 91, 245, 0.35);
+}
+
+.product-actions :deep(.el-button.is-circle) {
+  width: 38px !important;
+  height: 38px !important;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+  border-radius: 50% !important;
+}
+
+.product-actions :deep(.el-button.is-circle):hover {
+  transform: scale(1.1);
 }
 </style>
