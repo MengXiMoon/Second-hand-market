@@ -122,7 +122,6 @@ echo -e "\n${CYAN}[3/7] 初始化数据库...${NC}"
 cd "$BACKEND_DIR"
 source venv/bin/activate
 if [ ! -f "sql_app.db" ]; then
-    python3 init_admin.py
     python3 init_test_data.py
 else
     echo -e "${YELLOW}  数据库已存在，跳过初始化${NC}"
