@@ -9,10 +9,7 @@
         <el-select v-model="searchCategory" placeholder="全部分类" clearable @change="loadProducts" style="width: 140px; margin-left: 10px">
           <el-option v-for="c in categories" :key="c" :label="c" :value="c" />
         </el-select>
-        <el-input-number v-model="searchMinPrice" :min="0" placeholder="最低价" style="width: 120px; margin-left: 10px" />
-        <span style="margin:0 6px;color:#999">—</span>
-        <el-input-number v-model="searchMaxPrice" :min="0" placeholder="最高价" style="width: 120px" />
-        <el-select v-model="searchSort" @change="loadProducts" style="width: 130px; margin-left: 10px">
+        <el-select v-model="searchSort" @change="loadProducts" style="width: 140px; margin-left: 10px">
           <el-option label="最新发布" value="newest" />
           <el-option label="价格从低到高" value="price_asc" />
           <el-option label="价格从高到低" value="price_desc" />
@@ -149,8 +146,6 @@ const user = computed(() => store.getCurrentSession().user)
 const categories = ref([])
 const searchKeyword = ref('')
 const searchCategory = ref('')
-const searchMinPrice = ref(null)
-const searchMaxPrice = ref(null)
 const searchSort = ref('newest')
 const favoritedIds = ref(new Set())
 
@@ -170,8 +165,6 @@ const loadProducts = async () => {
     const params = {}
     if (searchKeyword.value) params.keyword = searchKeyword.value
     if (searchCategory.value) params.category = searchCategory.value
-    if (searchMinPrice.value) params.min_price = searchMinPrice.value
-    if (searchMaxPrice.value) params.max_price = searchMaxPrice.value
     params.sort = searchSort.value
 
     const [prodRes, favRes] = await Promise.all([
@@ -279,8 +272,20 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #0f172a 0%, #5e5bf5 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   font-size: 28px;
+}
+
+.search-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  margin-bottom: 30px;
+  padding: 16px 20px;
+  background: #fafbfc;
+  border-radius: 12px;
+  border: 1px solid #ebeef5;
 }
 
 .product-card {
