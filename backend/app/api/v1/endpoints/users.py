@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.api import deps
 from app.core.session_manager import session_manager
-from app.models.models import User, UserRole, Transaction, Wallet, Order, Product, MessageType
+from app.models.models import User, UserRole, Transaction, Wallet, Order, Product, MessageType, OrderStatus, ProductStatus
 from app.schemas import schemas
 from app.db.session import get_db
 from app.services.chat_service import find_or_create_conversation, create_message
@@ -109,16 +109,15 @@ def get_admin_stats(
     current_user: User = Depends(deps.get_current_active_admin),
 ) -> Any:
     today = datetime.now(timezone.utc).replace(tzinfo=None).replace(hour=0, minute=0, second=0, microsecond=0)
-    from app.models.models import Order, Product
 
     total_users = db.query(User).count()
     total_orders = db.query(Order).count()
-    total_revenue = db.query(Order).filter(Order.status == Order.OrderStatus.COMPLETED).all()
+    total_revenue = db.query(Order).filter(Order.status == OrderStatus.COMPLETED).all()
     total_revenue_cents = sum(o.total_price for o in total_revenue)
     pending_users = db.query(User).filter(User.is_verified == False).count()
-    pending_products = db.query(Product).filter(Product.status == Product.ProductStatus.PENDING).count()
+    pending_products = db.query(Product).filter(Product.status == ProductStatus.PENDING).count()
     today_orders = db.query(Order).filter(Order.created_at >= today).count()
-    today_revenue = db.query(Order).filter(Order.created_at >= today, Order.status == Order.OrderStatus.COMPLETED).all()
+    today_revenue = db.query(Order).filter(Order.created_at >= today, Order.status == OrderStatus.COMPLETED).all()
     today_revenue_cents = sum(o.total_price for o in today_revenue)
 
     return schemas.DashboardStats(
