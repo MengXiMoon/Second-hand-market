@@ -36,9 +36,10 @@
                 type="warning" size="small"
                 @click="handleCancel(row)">申请退款</el-button>
               <el-button
-                v-if="row.status === 'completed'"
+                v-if="row.status === 'completed' && !reviewedOrders.has(row.id)"
                 type="warning" size="small"
                 @click="handleReview(row)">评价</el-button>
+              <span v-if="row.status === 'completed' && reviewedOrders.has(row.id)" class="reviewed-text">已评价</span>
               <el-button
                 v-if="row.status === 'shipped'"
                 type="primary" size="small"
@@ -83,7 +84,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getMyOrders, payOrder, completeOrder, cancelOrder } from '../api/orders'
-import { createReview } from '../api/reviews'
+import { createReview, checkReviewed } from '../api/reviews'
 import { getWallet } from '../api/wallet'
 import Layout from '../components/Layout.vue'
 import { formatDateTime, formatMoney } from '../utils/format'
@@ -92,10 +93,20 @@ import { getOrderStatusText, getOrderStatusType } from '../utils/status'
 const loading = ref(false)
 const orders = ref([])
 
+const reviewedOrders = ref(new Set())
+
 const loadOrders = async () => {
   loading.value = true
   try {
     const { data } = await getMyOrders()
+    // 批量检查已完成订单的评估状态
+    const completedIds = data.filter(o => o.status === 'completed').map(o => o.id)
+    const results = await Promise.allSettled(completedIds.map(id => checkReviewed(id)))
+    const reviewed = new Set()
+    results.forEach((r, i) => {
+      if (r.status === 'fulfilled' && r.value.data.reviewed) reviewed.add(completedIds[i])
+    })
+    reviewedOrders.value = reviewed
     orders.value = data
   } catch (error) {
     ElMessage.error('加载订单失败')
@@ -239,5 +250,9 @@ onMounted(() => {
   font-size: 12px;
   color: #909399;
   margin-left: 4px;
+}
+.reviewed-text {
+  font-size: 12px;
+  color: #67c23a;
 }
 </style>

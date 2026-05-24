@@ -15,3 +15,7 @@ export const getProductReviews = (productId) => {
 export const getMyReviews = () => {
   return api.get('/reviews/my')
 }
+
+export const checkReviewed = (orderId) => {
+  return api.get(`/reviews/check/${orderId}`)
+}

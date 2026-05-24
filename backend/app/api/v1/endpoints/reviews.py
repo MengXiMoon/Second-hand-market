@@ -9,6 +9,7 @@ from app.models.models import User, Review, Order, OrderStatus, MessageType
 from app.schemas import schemas
 from app.core.websocket_manager import manager
 from app.services.chat_service import find_or_create_conversation, create_message
+from app.services.notification_service import push_notification
 
 router = APIRouter()
 
@@ -76,7 +77,23 @@ def reply_review(
     db.commit()
     db.refresh(review)
     review.reviewer_name = current_user.username
+
+    # 通知买家
+    push_notification(db, review.reviewer_id, "商家回复了你的评价",
+                      f"商家对订单 #{review.order_id} 的评价回复：{reply_in.reply}", "review_reply")
+
     return review
+
+
+@router.get("/check/{order_id}")
+def check_reviewed(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """检查某订单是否已评价"""
+    existing = db.query(Review).filter(Review.order_id == order_id).first()
+    return {"reviewed": existing is not None}
 
 
 @router.get("/product/{product_id}", response_model=List[schemas.Review])
