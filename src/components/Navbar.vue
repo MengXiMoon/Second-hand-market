@@ -87,10 +87,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ref, onMounted, computed } from 'vue'
 import store from '../store'
 import { contactSupport } from '../api/chat'
 import { getUnreadCount } from '../api/notifications'
