@@ -15,10 +15,11 @@ router = APIRouter()
 
 @router.post("/", response_model=schemas.Review)
 def create_review(
+    *,
     review_in: schemas.ReviewCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_user),
-    background_tasks: BackgroundTasks,
 ) -> Any:
     """确认收货后评价订单"""
     if review_in.rating < 1 or review_in.rating > 5:
