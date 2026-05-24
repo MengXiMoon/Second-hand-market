@@ -3,6 +3,26 @@
     <div class="products">
       <h2>{{ pageTitle }}</h2>
       
+      <!-- 搜索和分类筛选（仅买家端） -->
+      <div v-if="!isAdminOrMerchant" class="search-filter">
+        <el-input v-model="searchKeyword" placeholder="搜索商品..." clearable @clear="loadProducts" @keyup.enter="loadProducts" style="width: 260px" />
+        <el-select v-model="searchCategory" placeholder="全部分类" clearable @change="loadProducts" style="width: 140px; margin-left: 10px">
+          <el-option v-for="c in categories" :key="c" :label="c" :value="c" />
+        </el-select>
+        <el-input-number v-model="searchMinPrice" :min="0" placeholder="最低价" style="width: 120px; margin-left: 10px" />
+        <span style="margin:0 6px;color:#999">—</span>
+        <el-input-number v-model="searchMaxPrice" :min="0" placeholder="最高价" style="width: 120px" />
+        <el-select v-model="searchSort" @change="loadProducts" style="width: 130px; margin-left: 10px">
+          <el-option label="最新发布" value="newest" />
+          <el-option label="价格从低到高" value="price_asc" />
+          <el-option label="价格从高到低" value="price_desc" />
+        </el-select>
+        <el-button type="primary" @click="loadProducts" style="margin-left: 10px">搜索</el-button>
+        <el-button v-if="user" type="warning" plain @click="$router.push('/customer/favorites')" style="margin-left: 10px">
+          <el-icon><Star /></el-icon> 我的收藏
+        </el-button>
+      </div>
+
       <template v-if="isAdminOrMerchant">
         <el-table :data="products" v-loading="loading" style="width: 100%">
           <el-table-column prop="id" label="ID" width="80" />
@@ -79,6 +99,17 @@
                       <el-icon><ChatDotRound /></el-icon>
                     </el-button>
                   </el-tooltip>
+                  <el-tooltip v-if="user" content="收藏" placement="top">
+                    <el-button
+                      size="default"
+                      circle
+                      plain
+                      :type="product.is_favorited ? 'danger' : 'info'"
+                      @click="handleToggleFavorite(product)"
+                    >
+                      <el-icon><StarFilled v-if="product.is_favorited" /><Star v-else /></el-icon>
+                    </el-button>
+                  </el-tooltip>
                 </div>
               </div>
             </el-card>
@@ -95,7 +126,7 @@
 import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getProducts } from '../api/products'
+import { getProducts, getCategories, getFavorites, addFavorite, removeFavorite } from '../api/products'
 import { createOrder, addToCart } from '../api/orders'
 import store from '../store'
 import Layout from '../components/Layout.vue'
@@ -115,6 +146,13 @@ const getImageUrl = (url) => {
 const loading = ref(false)
 const products = ref([])
 const user = computed(() => store.getCurrentSession().user)
+const categories = ref([])
+const searchKeyword = ref('')
+const searchCategory = ref('')
+const searchMinPrice = ref(null)
+const searchMaxPrice = ref(null)
+const searchSort = ref('newest')
+const favoritedIds = ref(new Set())
 
 const isAdmin = computed(() => user.value?.role === 'admin')
 const isMerchant = computed(() => user.value?.role === 'merchant')
@@ -129,12 +167,56 @@ const pageTitle = computed(() => {
 const loadProducts = async () => {
   loading.value = true
   try {
-    const { data } = await getProducts()
-    products.value = data
+    const params = {}
+    if (searchKeyword.value) params.keyword = searchKeyword.value
+    if (searchCategory.value) params.category = searchCategory.value
+    if (searchMinPrice.value) params.min_price = searchMinPrice.value
+    if (searchMaxPrice.value) params.max_price = searchMaxPrice.value
+    params.sort = searchSort.value
+
+    const [prodRes, favRes] = await Promise.all([
+      getProducts(params),
+      user.value ? getFavorites().catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+    ])
+    favoritedIds.value = new Set(favRes.data.map(f => f.product_id))
+    products.value = prodRes.data.map(p => ({
+      ...p,
+      is_favorited: favoritedIds.value.has(p.id),
+    }))
   } catch (error) {
     ElMessage.error('加载商品失败')
   } finally {
     loading.value = false
+  }
+}
+
+const loadCategories = async () => {
+  try {
+    const { data } = await getCategories()
+    categories.value = data.categories
+  } catch (_) {}
+}
+
+const handleToggleFavorite = async (product) => {
+  if (product.is_favorited) {
+    // 从 favorites 列表中查找对应的收藏记录
+    try {
+      const { data } = await getFavorites()
+      const fav = data.find(f => f.product_id === product.id)
+      if (fav) {
+        await removeFavorite(fav.id)
+        product.is_favorited = false
+        ElMessage.success('已取消收藏')
+      }
+    } catch (_) {}
+  } else {
+    try {
+      await addFavorite(product.id)
+      product.is_favorited = true
+      ElMessage.success('已收藏')
+    } catch (error) {
+      ElMessage.error(error.response?.data?.detail || '收藏失败')
+    }
   }
 }
 
@@ -174,6 +256,7 @@ const handleBuy = async (product) => {
 }
 
 onMounted(() => {
+  loadCategories()
   loadProducts()
   window.addEventListener('refresh-data', loadProducts)
 })

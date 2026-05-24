@@ -1,7 +1,11 @@
 import api from './index'
 
-export const getProducts = (skip = 0, limit = 100) => {
-  return api.get('/products', { params: { skip, limit } })
+export const getProducts = (params = {}) => {
+  return api.get('/products', { params })
+}
+
+export const getCategories = () => {
+  return api.get('/products/categories')
 }
 
 export const getMyProducts = () => {
@@ -34,4 +38,17 @@ export const uploadProductImage = (file) => {
   return api.post('/products/upload-image', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
+}
+
+// 收藏
+export const getFavorites = () => {
+  return api.get('/products/favorites')
+}
+
+export const addFavorite = (productId) => {
+  return api.post('/products/favorites', { product_id: productId })
+}
+
+export const removeFavorite = (favoriteId) => {
+  return api.delete(`/products/favorites/${favoriteId}`)
 }

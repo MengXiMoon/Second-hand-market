@@ -57,6 +57,8 @@ class ProductBase(BaseModel):
     price: int  # Price in cents (e.g., 10000 = 100.00 yuan)
     stock: int = 1
     image_url: Optional[str] = None
+    images: Optional[str] = None  # JSON array string
+    category: Optional[str] = None
 
 class ProductCreate(ProductBase):
     pass
@@ -68,6 +70,20 @@ class Product(ProductBase):
     merchant_name: Optional[str] = None
     audit_remark: Optional[str] = None
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Favorite schemas
+class FavoriteCreate(BaseModel):
+    product_id: int
+
+class Favorite(BaseModel):
+    id: int
+    user_id: int
+    product_id: int
+    created_at: datetime
+    product: Optional[Product] = None
 
     class Config:
         from_attributes = True

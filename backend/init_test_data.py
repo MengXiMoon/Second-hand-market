@@ -179,11 +179,26 @@ def create_products(db, user_map):
         exists = db.query(Product).filter(Product.name == name).first()
         if exists:
             continue
+        # 自动推断分类
+        if merchant_key == "phone_merchant":
+            category = "电子产品"
+        elif merchant_key == "book_merchant":
+            category = "图书音像"
+        elif merchant_key == "furniture_merchant":
+            category = "家具家居"
+        elif merchant_key == "cloth_merchant":
+            category = "服装鞋帽"
+        elif merchant_key == "elec_merchant":
+            category = "家用电器"
+        else:
+            category = "其他"
+
         p = Product(
             name=name,
             description=desc,
             price=price,
             stock=stock,
+            category=category,
             status=status,
             merchant_id=user_map[merchant_key].id,
             audit_remark=("描述与实际不符，请重新修改" if status == ProductStatus.REJECTED else None),

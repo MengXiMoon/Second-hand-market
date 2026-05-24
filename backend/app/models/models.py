@@ -57,12 +57,25 @@ class Product(Base):
     price = Column(Integer)  # Price in cents (e.g., 10000 = 100.00 yuan)
     stock = Column(Integer, default=1)
     image_url = Column(String, nullable=True)
+    images = Column(String, nullable=True)  # JSON array of image URLs, e.g. '["url1","url2"]'
+    category = Column(String, nullable=True, index=True)
     status = Column(Enum(ProductStatus), default=ProductStatus.PENDING)
     merchant_id = Column(Integer, ForeignKey("users.id"), index=True)
     audit_remark = Column(String, nullable=True)
     created_at = Column(DateTime, default=get_beijing_time)
 
     merchant = relationship("User", back_populates="products")
+
+
+class Favorite(Base):
+    __tablename__ = "favorites"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), index=True)
+    created_at = Column(DateTime, default=get_beijing_time)
+
+    product = relationship("Product")
 
     @property
     def merchant_name(self) -> str:
