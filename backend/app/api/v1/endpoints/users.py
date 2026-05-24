@@ -1,4 +1,6 @@
 from typing import Any, List
+from datetime import datetime, timezone, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -8,6 +10,7 @@ from app.models.models import User, UserRole, Transaction, Wallet, Order, Produc
 from app.schemas import schemas
 from app.db.session import get_db
 from app.services.chat_service import find_or_create_conversation, create_message
+from app.services.notification_service import push_notification
 
 router = APIRouter()
 
@@ -52,6 +55,9 @@ def verify_user(
     db.commit()
     db.refresh(user)
 
+    push_notification(db, user.id, "账号审核通过",
+                      "您的注册申请已通过审核，欢迎加入！", "user_verified")
+
     # 自动发送审核通过欢迎消息
     conv = find_or_create_conversation(db, current_user.id, user.id)
     create_message(
@@ -95,3 +101,32 @@ def delete_user(
     db.delete(user)
     db.commit()
     return user
+
+
+@router.get("/stats", response_model=schemas.DashboardStats)
+def get_admin_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_active_admin),
+) -> Any:
+    today = datetime.now(timezone.utc).replace(tzinfo=None).replace(hour=0, minute=0, second=0, microsecond=0)
+    from app.models.models import Order, Product
+
+    total_users = db.query(User).count()
+    total_orders = db.query(Order).count()
+    total_revenue = db.query(Order).filter(Order.status == Order.OrderStatus.COMPLETED).all()
+    total_revenue_cents = sum(o.total_price for o in total_revenue)
+    pending_users = db.query(User).filter(User.is_verified == False).count()
+    pending_products = db.query(Product).filter(Product.status == Product.ProductStatus.PENDING).count()
+    today_orders = db.query(Order).filter(Order.created_at >= today).count()
+    today_revenue = db.query(Order).filter(Order.created_at >= today, Order.status == Order.OrderStatus.COMPLETED).all()
+    today_revenue_cents = sum(o.total_price for o in today_revenue)
+
+    return schemas.DashboardStats(
+        total_users=total_users,
+        total_orders=total_orders,
+        total_revenue=total_revenue_cents,
+        pending_users=pending_users,
+        pending_products=pending_products,
+        today_orders=today_orders,
+        today_revenue=today_revenue_cents,
+    )

@@ -15,3 +15,7 @@ export const verifyUser = (userId) => {
 export const deleteUser = (userId) => {
   return api.delete(`/users/${userId}`)
 }
+
+export const getAdminStats = () => {
+  return api.get('/users/stats')
+}

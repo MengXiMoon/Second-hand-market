@@ -53,6 +53,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/customer/notifications',
+    name: 'CustomerNotifications',
+    component: () => import('../views/NotificationCenter.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/customer/orders',
     name: 'CustomerOrders',
     component: () => import('../views/Orders.vue'),
@@ -113,12 +119,36 @@ const routes = [
     component: () => import('../views/Wallet.vue'),
     meta: { requiresAuth: true, requiresMerchant: true }
   },
+  {
+    path: '/merchant/reviews',
+    name: 'MerchantReviews',
+    component: () => import('../views/MerchantReviews.vue'),
+    meta: { requiresAuth: true, requiresMerchant: true }
+  },
+  {
+    path: '/merchant/notifications',
+    name: 'MerchantNotifications',
+    component: () => import('../views/NotificationCenter.vue'),
+    meta: { requiresAuth: true, requiresMerchant: true }
+  },
   // Admin Routes
+  {
+    path: '/admin/dashboard',
+    name: 'AdminDashboard',
+    component: () => import('../views/admin/Dashboard.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
   {
     path: '/admin/login',
     name: 'AdminLogin',
     component: () => import('../views/Login.vue'),
     meta: { requiresAuth: false, guestOnly: true }
+  },
+  {
+    path: '/admin/notifications',
+    name: 'AdminNotifications',
+    component: () => import('../views/NotificationCenter.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/admin/users',

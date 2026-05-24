@@ -11,6 +11,7 @@ from app.schemas import schemas
 from app.db.session import get_db
 from app.core.websocket_manager import manager
 from app.services.chat_service import find_or_create_conversation, create_message
+from app.services.notification_service import push_notification
 from app.core.config import settings
 
 CATEGORIES = ["电子产品", "图书音像", "家具家居", "服装鞋帽", "家用电器", "运动户外", "其他"]
@@ -147,6 +148,9 @@ def audit_product(
         "data": {"product_id": product.id, "status": product.status, "product_name": product.name, "remark": remark},
     }
     background_tasks.add_task(manager.send_personal_message, notification_payload, product.merchant_id)
+
+    push_notification(db, product.merchant_id, "商品审核通知",
+                      f"您的商品「{product.name}」已{status_label}", "product_audit")
 
     conv = find_or_create_conversation(db, current_user.id, product.merchant_id)
     remark_text = f" 驳回原因：{remark}" if remark and not approve else ""

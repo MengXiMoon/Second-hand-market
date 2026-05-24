@@ -36,6 +36,10 @@
                 type="warning" size="small"
                 @click="handleCancel(row)">申请退款</el-button>
               <el-button
+                v-if="row.status === 'completed'"
+                type="warning" size="small"
+                @click="handleReview(row)">评价</el-button>
+              <el-button
                 v-if="row.status === 'shipped'"
                 type="primary" size="small"
                 @click="handleComplete(row)">确认收货</el-button>
@@ -55,6 +59,22 @@
       </el-table>
 
       <el-empty v-if="!loading && orders.length === 0" description="暂无订单" />
+
+      <!-- 评价对话框 -->
+      <el-dialog v-model="showReviewDialog" title="评价订单" width="420px">
+        <el-form label-width="60px">
+          <el-form-item label="评分">
+            <el-rate v-model="reviewForm.rating" />
+          </el-form-item>
+          <el-form-item label="评论">
+            <el-input v-model="reviewForm.comment" type="textarea" :rows="2" placeholder="说点什么吧..." />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="showReviewDialog = false">取消</el-button>
+          <el-button type="primary" @click="handleSubmitReview">提交评价</el-button>
+        </template>
+      </el-dialog>
     </div>
   </Layout>
 </template>
@@ -63,6 +83,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getMyOrders, payOrder, completeOrder, cancelOrder } from '../api/orders'
+import { createReview } from '../api/reviews'
 import { getWallet } from '../api/wallet'
 import Layout from '../components/Layout.vue'
 import { formatDateTime, formatMoney } from '../utils/format'
@@ -158,6 +179,25 @@ const handleComplete = async (order) => {
     loadOrders()
   } catch (error) {
     if (error !== 'cancel') ElMessage.error(error.response?.data?.detail || '操作失败')
+  }
+}
+
+const showReviewDialog = ref(false)
+const reviewForm = ref({ order_id: 0, rating: 5, comment: '' })
+
+const handleReview = (order) => {
+  reviewForm.value = { order_id: order.id, rating: 5, comment: '' }
+  showReviewDialog.value = true
+}
+
+const handleSubmitReview = async () => {
+  try {
+    await createReview(reviewForm.value)
+    ElMessage.success('评价成功')
+    showReviewDialog.value = false
+    loadOrders()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.detail || '评价失败')
   }
 }
 

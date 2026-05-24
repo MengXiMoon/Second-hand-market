@@ -161,3 +161,32 @@ class ChatMessage(Base):
 
     conversation = relationship("Conversation", back_populates="messages")
     sender = relationship("User", foreign_keys=[sender_id])
+
+
+class Review(Base):
+    __tablename__ = "reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id"), unique=True, index=True)
+    reviewer_id = Column(Integer, ForeignKey("users.id"))
+    merchant_id = Column(Integer, ForeignKey("users.id"))
+    product_id = Column(Integer, ForeignKey("products.id"))
+    rating = Column(Integer)  # 1-5 stars
+    comment = Column(String)
+    reply = Column(String, nullable=True)
+    created_at = Column(DateTime, default=get_beijing_time)
+
+    reviewer = relationship("User", foreign_keys=[reviewer_id])
+    product = relationship("Product")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    title = Column(String)
+    content = Column(String)
+    n_type = Column(String)  # product_audit / new_order / admin_event / chat_message
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=get_beijing_time)

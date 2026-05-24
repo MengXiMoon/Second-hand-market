@@ -12,6 +12,7 @@
         </template>
         <!-- Admin Context Links -->
         <template v-else-if="activeRole === 'admin'">
+          <el-button type="text" @click="$router.push('/admin/dashboard')">数据看板</el-button>
           <el-button type="text" @click="$router.push('/admin/all-products')">全部商品</el-button>
           <el-button type="text" @click="$router.push('/admin/chat')">消息</el-button>
           <el-button type="text" @click="$router.push('/admin/all-users')">全部用户</el-button>
@@ -26,6 +27,7 @@
           <el-button type="text" @click="$router.push('/merchant/chat')">消息</el-button>
           <el-button type="text" @click="$router.push('/merchant/my-products')">我的商品</el-button>
           <el-button type="text" @click="$router.push('/merchant/sales')">销售记录</el-button>
+          <el-button type="text" @click="$router.push('/merchant/reviews')">买家评价</el-button>
           <el-button type="text" @click="$router.push('/merchant/wallet')">钱包</el-button>
         </template>
 
@@ -65,6 +67,11 @@
           <el-button v-if="anyLoggedIn" type="danger" size="small" @click="handleLogoutAll">全部退出</el-button>
         </template>
         <template v-else-if="userInfo">
+          <el-badge :value="unreadNotifCount" :hidden="unreadNotifCount === 0" style="margin-right:12px">
+            <el-button size="small" circle @click="goNotifications">
+              <el-icon><Bell /></el-icon>
+            </el-button>
+          </el-badge>
           <span class="user-info">
             {{ userInfo.username }} ({{ userInfo.role === 'merchant' ? '商家' : (userInfo.role === 'admin' ? '管理员' : '用户') }})
           </span>
@@ -80,14 +87,32 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { ref, onMounted, computed } from 'vue'
 import store from '../store'
 import { contactSupport } from '../api/chat'
+import { getUnreadCount } from '../api/notifications'
 
 const router = useRouter()
 const route = useRoute()
+const unreadNotifCount = ref(0)
+
+const goNotifications = () => {
+  const role = store.getActiveRole()
+  const prefix = role === 'merchant' ? '/merchant' : (role === 'admin' ? '/admin' : '/customer')
+  router.push(prefix + '/notifications')
+}
+
+const fetchUnreadCount = async () => {
+  const session = store.getCurrentSession()
+  if (!session.token) return
+  try {
+    const { data } = await getUnreadCount()
+    unreadNotifCount.value = data.count
+  } catch (_) {}
+}
 
 const isRootPath = computed(() => route.path === '/')
 const isAuthPage = computed(() => ['/login', '/register'].includes(route.path))
@@ -155,6 +180,11 @@ const handleContactSupport = async () => {
     ElMessage.error(error.response?.data?.detail || '联系客服失败')
   }
 }
+
+onMounted(() => {
+  fetchUnreadCount()
+  setInterval(fetchUnreadCount, 30000)
+})
 </script>
 
 <style scoped>
