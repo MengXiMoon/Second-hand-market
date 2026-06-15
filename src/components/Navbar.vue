@@ -8,39 +8,39 @@
       <nav class="nav-links">
         <!-- Root path: show neutral links -->
         <template v-if="isRootPath">
-          <el-button type="text" @click="$router.push('/customer/products')">商品列表</el-button>
+          <el-button link @click="$router.push('/customer/products')">商品列表</el-button>
         </template>
         <!-- Admin Context Links -->
         <template v-else-if="activeRole === 'admin'">
-          <el-button type="text" @click="$router.push('/admin/dashboard')">数据看板</el-button>
-          <el-button type="text" @click="$router.push('/admin/all-products')">全部商品</el-button>
-          <el-button type="text" @click="$router.push('/admin/chat')">消息</el-button>
-          <el-button type="text" @click="$router.push('/admin/all-users')">全部用户</el-button>
-          <el-button type="text" @click="$router.push('/admin/users')">用户审核</el-button>
-          <el-button type="text" @click="$router.push('/admin/products')">商品审核</el-button>
-          <el-button type="text" @click="$router.push('/admin/orders')">全站订单</el-button>
+          <el-button link @click="$router.push('/admin/dashboard')">数据看板</el-button>
+          <el-button link @click="$router.push('/admin/all-products')">全部商品</el-button>
+          <el-button link @click="$router.push('/admin/chat')">消息</el-button>
+          <el-button link @click="$router.push('/admin/all-users')">全部用户</el-button>
+          <el-button link @click="$router.push('/admin/users')">用户审核</el-button>
+          <el-button link @click="$router.push('/admin/products')">商品审核</el-button>
+          <el-button link @click="$router.push('/admin/orders')">全站订单</el-button>
         </template>
 
         <!-- Merchant Context Links -->
         <template v-else-if="activeRole === 'merchant'">
-          <el-button type="text" @click="$router.push('/merchant/products')">商品列表</el-button>
-          <el-button type="text" @click="$router.push('/merchant/chat')">消息</el-button>
-          <el-button type="text" @click="$router.push('/merchant/my-products')">我的商品</el-button>
-          <el-button type="text" @click="$router.push('/merchant/sales')">销售记录</el-button>
-          <el-button type="text" @click="$router.push('/merchant/reviews')">买家评价</el-button>
-          <el-button type="text" @click="$router.push('/merchant/wallet')">钱包</el-button>
+          <el-button link @click="$router.push('/merchant/products')">商品列表</el-button>
+          <el-button link @click="$router.push('/merchant/chat')">消息</el-button>
+          <el-button link @click="$router.push('/merchant/my-products')">我的商品</el-button>
+          <el-button link @click="$router.push('/merchant/sales')">销售记录</el-button>
+          <el-button link @click="$router.push('/merchant/reviews')">买家评价</el-button>
+          <el-button link @click="$router.push('/merchant/wallet')">钱包</el-button>
         </template>
 
         <!-- User/Public Context Links -->
         <template v-else>
-          <el-button type="text" @click="$router.push('/customer/products')">商品列表</el-button>
-          <el-button v-if="!userSession.token" type="text" @click="$router.push('/merchant/login')" style="color: #e6a23c">商家入驻</el-button>
+          <el-button link @click="$router.push('/customer/products')">商品列表</el-button>
+          <el-button v-if="!userSession.token" link @click="$router.push('/merchant/login')" style="color: #e6a23c">商家入驻</el-button>
           <template v-if="userSession.token">
-            <el-button type="text" @click="$router.push('/customer/cart')">购物车</el-button>
-            <el-button type="text" @click="$router.push('/customer/chat')">消息</el-button>
-            <el-button type="text" @click="$router.push('/customer/orders')">我的订单</el-button>
-            <el-button type="text" @click="$router.push('/customer/wallet')">钱包</el-button>
-            <el-button type="text" @click="handleContactSupport" style="color: #67c23a">联系客服</el-button>
+            <el-button link @click="$router.push('/customer/cart')">购物车</el-button>
+            <el-button link @click="$router.push('/customer/chat')">消息</el-button>
+            <el-button link @click="$router.push('/customer/orders')">我的订单</el-button>
+            <el-button link @click="$router.push('/customer/wallet')">钱包</el-button>
+            <el-button link @click="handleContactSupport" style="color: #67c23a">联系客服</el-button>
           </template>
         </template>
       </nav>
